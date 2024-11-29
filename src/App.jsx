@@ -3,6 +3,7 @@ import Navbar from './components/Navbar';
 import MediaSection from './components/MediaSection';
 import HeroSection from './components/HeroSection';
 import TourSection from './components/TourSection';
+import ShowcaseSection from './components/ShowcaseSection';
 
 function App() {
   return (
@@ -10,6 +11,8 @@ function App() {
       <Navbar />
       <HeroSection />
       <MediaSection />
+      <div className="py-12 sm:py-20 bg-neutral-50 w-screen  overflow-hidden"></div>
+      <ShowcaseSection />
       <TourSection />
 
       <section id="contact" className="py-24 bg-gray-50">
