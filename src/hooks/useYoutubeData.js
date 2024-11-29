@@ -1,33 +1,34 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { API_URL } from '../config';
+import staticViewsCache from '../data/viewsCache.json';
 
-let viewsCache = null;
+let memoryCache = null;
 let lastFetchTime = null;
 
 export function useYoutubeData() {
-  const [views, setViews] = useState({});
+  const [views, setViews] = useState(staticViewsCache.views);
 
   useEffect(() => {
     const fetchViews = async () => {
-      console.log('Attempting to fetch views from:', `${API_URL}/api/youtube-stats`);
       try {
-        if (viewsCache && lastFetchTime && (Date.now() - lastFetchTime) < 60000) {
-          console.log('Using cached views:', viewsCache);
-          setViews(viewsCache);
+        // Use memory cache if it's less than 1 minute old
+        if (memoryCache && lastFetchTime && (Date.now() - lastFetchTime) < 60000) {
+          setViews(memoryCache);
           return;
         }
 
-        console.log('Making API request to:', `${API_URL}/api/youtube-stats`);
+        // Try to fetch fresh data
         const response = await axios.get(`${API_URL}/api/youtube-stats`);
-        console.log('Received response:', response.data);
-        viewsCache = response.data;
+        memoryCache = response.data;
         lastFetchTime = Date.now();
         setViews(response.data);
       } catch (error) {
         console.error('Error fetching video stats:', error);
-        console.error('API_URL:', API_URL);
-        setViews({});
+        // Keep using static cache if API fails
+        if (Object.keys(views).length === 0) {
+          setViews(staticViewsCache.views);
+        }
       }
     };
 
