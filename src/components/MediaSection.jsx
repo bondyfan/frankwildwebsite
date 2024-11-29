@@ -85,90 +85,99 @@ export default function MediaSection() {
   };
 
   return (
-    <motion.section
-      className="py-12 sm:py-20 bg-neutral-50 w-screen overflow-hidden"
-      initial={{ opacity: 0, scale: 0.8 }}
-      whileInView={{ opacity: 1, scale: 1 }}
-      viewport={{ once: false, amount: 0.3 }}
-      transition={{ 
-        duration: 0.5,
-        ease: "easeOut"
+    <div 
+      className="relative w-full"
+      style={{
+       
       }}
     >
-      <h2 className="text-2xl sm:text-3xl font-bold mb-10 text-center">
-        V médiích
-      </h2>
-      
-      {isMobile ? (
-        // Mobile scrolling view
-        <div className="relative w-full">
-          <div
-            className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-[7.5%]"
-            style={{
-              paddingLeft: "7.5%",
-              paddingRight: "7.5%",
-            }}
-          >
-            {blogPosts.map((post, index) => (
-              <MediaCard key={index} post={post} isDesktop={false} />
-            ))}
-          </div>
-        </div>
-      ) : (
-        // Desktop grid view with pagination
-        <div className="max-w-7xl mx-auto px-8">
-          <div className="relative">
-            {/* Container that shows exactly 3 items */}
-            <div className="w-full overflow-hidden" ref={containerRef}>
-              <div 
-                className="flex transition-transform duration-500 ease-in-out"
+      <section className="relative w-full pb-32   md:pt-20 md:pb-40 overflow-hidden bg-transparent">
+        <motion.div
+          className="w-full"
+          initial={{ opacity: 0, scale: 0.8 }}
+          whileInView={{ opacity: 1, scale: 1 }}
+          viewport={{ once: false, amount: 0.3 }}
+          transition={{ 
+            duration: 0.5,
+            ease: "easeOut"
+          }}
+        >
+          <h2 className="text-2xl sm:text-3xl font-bold mb-10 text-center">
+            V médiích
+          </h2>
+          
+          {isMobile ? (
+            // Mobile scrolling view
+            <div className="relative w-full">
+              <div
+                className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-[7.5%]"
                 style={{
-                  width: 'calc(100% / 3 * 4)', // Width for 4 items
-                  transform: `translateX(calc(-${currentIndex} * (100% / 4)))`, // Move by 1/4 of total width
-                  gap: '2rem',
+                  paddingLeft: "7.5%",
+                  paddingRight: "7.5%",
                 }}
               >
-                {/* Show 4 items so we can slide to the next one */}
-                {[...blogPosts.slice(0, 4)].map((post, index) => (
-                  <div 
-                    key={index} 
-                    style={{
-                      width: `calc((100% - 6rem) / 4)`, // Total width minus 3 gaps (2rem each), divided by 4
-                      flexShrink: 0,
-                    }}
-                  >
-                    <MediaCard post={post} isDesktop={true} />
-                  </div>
+                {blogPosts.map((post, index) => (
+                  <MediaCard key={index} post={post} isDesktop={false} />
                 ))}
               </div>
             </div>
-            
-            {/* Navigation buttons */}
-            {currentIndex === 0 && (
-              <DesktopNavButton
-                direction="next"
-                onClick={nextSlide}
-              />
-            )}
-            {currentIndex === 1 && (
-              <DesktopNavButton
-                direction="prev"
-                onClick={prevSlide}
-              />
-            )}
-          </div>
-        </div>
-      )}
+          ) : (
+            // Desktop grid view with pagination
+            <div className="max-w-7xl mx-auto px-8">
+              <div className="relative">
+                {/* Container that shows exactly 3 items */}
+                <div className="w-full overflow-hidden" ref={containerRef}>
+                  <div 
+                    className="flex transition-transform duration-500 ease-in-out"
+                    style={{
+                      width: 'calc(100% / 3 * 4)', // Width for 4 items
+                      transform: `translateX(calc(-${currentIndex} * (100% / 4)))`, // Move by 1/4 of total width
+                      gap: '2rem',
+                    }}
+                  >
+                    {/* Show 4 items so we can slide to the next one */}
+                    {[...blogPosts.slice(0, 4)].map((post, index) => (
+                      <div 
+                        key={index} 
+                        style={{
+                          width: `calc((100% - 6rem) / 4)`, // Total width minus 3 gaps (2rem each), divided by 4
+                          flexShrink: 0,
+                        }}
+                      >
+                        <MediaCard post={post} isDesktop={true} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Navigation buttons */}
+                {currentIndex === 0 && (
+                  <DesktopNavButton
+                    direction="next"
+                    onClick={nextSlide}
+                  />
+                )}
+                {currentIndex === 1 && (
+                  <DesktopNavButton
+                    direction="prev"
+                    onClick={prevSlide}
+                  />
+                )}
+              </div>
+            </div>
+          )}
 
-      <style jsx global>{`
-        .scrollbar-hide {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
-        .scrollbar-hide::-webkit-scrollbar {
-          display: none;
-        }
-      `}</style>
-    </motion.section>
+          <style jsx global>{`
+            .scrollbar-hide {
+              -ms-overflow-style: none;
+              scrollbar-width: none;
+            }
+            .scrollbar-hide::-webkit-scrollbar {
+              display: none;
+            }
+          `}</style>
+        </motion.div>
+      </section>
+    </div>
   );
 }

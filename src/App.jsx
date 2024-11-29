@@ -11,7 +11,6 @@ function App() {
       <Navbar />
       <HeroSection />
       <MediaSection />
-      <div className="py-12 sm:py-20 bg-neutral-50 w-screen  overflow-hidden"></div>
       <ShowcaseSection />
       <TourSection />
 

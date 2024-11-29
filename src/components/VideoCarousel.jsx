@@ -121,7 +121,11 @@ function VideoCarousel({ videos: initialVideos, onSlideChange }) {
           }}
         >
           {sortedVideos.map((video, index) => (
-            <div key={index} className="carousel-item flex-none w-[82vw] snap-center px-2 transform transition-transform" data-index={index}>
+            <div 
+              key={index} 
+              className="carousel-item flex-none w-[82vw] snap-center px-6 transform transition-transform"
+              data-index={index}
+            >
               <div className="video-component">
                 <VideoComponent 
                   video={video}
@@ -146,7 +150,7 @@ function VideoCarousel({ videos: initialVideos, onSlideChange }) {
               }}
               className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full transition-all ${
                 index === visibleIndex 
-                  ? "bg-gradient-to-r from-purple-600 via-pink-500 to-red-500 scale-125" 
+                  ? "bg-gradient-to-r from-purple-600 via-pink-500 to-red-500" 
                   : "bg-gray-900"
               }`}
               aria-label={`Go to slide ${index + 1}`}

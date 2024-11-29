@@ -1,71 +1,57 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 
-const FlashEffect = ({ delay, top, left, scale = 1 }) => (
-  <div 
-    className="absolute w-6 h-6 opacity-0"
-    style={{
-      top: `${top}%`,
-      left: `${left}%`,
-      animation: `flash 1.5s ease-out ${delay}s infinite`,
-      transform: `scale(${scale})`,
-    }}
-  >
-    {/* Outer glow */}
-    <div className="absolute inset-0 bg-white/30 blur-xl scale-150" />
-    
-    {/* Middle glow */}
-    <div className="absolute inset-0 bg-white/50 blur-lg scale-125" />
-    
-    {/* Inner bright flash */}
-    <div className="absolute inset-0 bg-white blur-[2px]" />
-
-    {/* Star overlay */}
-    <div 
-      className="absolute inset-0 bg-white mix-blend-screen"
-      style={{
-        clipPath: 'polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)',
-        transform: 'scale(0.7)',
-      }}
-    />
-  </div>
-);
-
-const generateFlashes = (count) => {
-  // Create clusters of positions
-  const positions = [];
-  
-  // Generate some random focal points
-  const focalPoints = Array.from({ length: 4 }, () => ({
-    x: Math.random() * 100,
-    y: Math.random() * 100,
+const generatePositions = (count) => {
+  return Array.from({ length: count }, () => ({
+    top: Math.random() * 160 - 30,
+    left: Math.random() * 160 - 30,
   }));
+};
 
-  return Array.from({ length: count }, (_, i) => {
-    // Randomly choose whether to position near a focal point or completely random
-    const useRandomPosition = Math.random() < 0.4;
-    let top, left;
+const FlashEffect = ({ positions }) => {
+  const [currentPosition, setCurrentPosition] = useState(positions[0]);
+  const [key, setKey] = useState(0);
 
-    if (useRandomPosition) {
-      // Completely random position
-      top = Math.random() * 120 - 10; // Allow slight overflow
-      left = Math.random() * 120 - 10;
-    } else {
-      // Position near a random focal point
-      const focalPoint = focalPoints[Math.floor(Math.random() * focalPoints.length)];
-      const spread = 30; // Spread range around focal point
-      top = focalPoint.y + (Math.random() - 0.5) * spread;
-      left = focalPoint.x + (Math.random() - 0.5) * spread;
-    }
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const randomPosition = positions[Math.floor(Math.random() * positions.length)];
+      setCurrentPosition(randomPosition);
+      setKey(k => k + 1);
+    }, Math.random() * 3000 + 2000);
 
-    return {
-      id: i,
-      top: Math.max(-10, Math.min(110, top)), // Allow slight overflow but not too much
-      left: Math.max(-10, Math.min(110, left)),
-      delay: (Math.random() * 6) + (Math.random() < 0.3 ? 4 : 0),
-      scale: 0.8 + Math.random() * 0.4 // Random size variation
-    };
-  });
+    return () => clearInterval(interval);
+  }, [positions]);
+
+  return (
+    <div 
+      key={key}
+      className="absolute w-6 h-6 opacity-0"
+      style={{
+        top: `${currentPosition.top}%`,
+        left: `${currentPosition.left}%`,
+        animation: 'flash 0.3s linear',
+        animationIterationCount: '1',
+      }}
+    >
+      {/* Outer glow */}
+      <div className="absolute inset-0 bg-white/30 blur-xl scale-150" />
+      
+      {/* Middle glow */}
+      <div className="absolute inset-0 bg-white/50 blur-lg scale-125" />
+      
+      {/* Inner bright flash */}
+      <div className="absolute inset-0 bg-white blur-[2px]" />
+
+      {/* Star overlay */}
+      <div 
+        className="absolute inset-0 bg-white mix-blend-screen"
+        style={{
+          clipPath: 'polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)',
+          transform: 'scale(0.7)',
+        }}
+      />
+    </div>
+  );
 };
 
 const showcaseData = [
@@ -118,11 +104,30 @@ const ShowcaseCard = ({ title, videoUrl, description }) => (
 );
 
 const ShowcaseSection = () => {
-  const [flashes] = useState(() => generateFlashes(15));
+  // Create a pool of 100 random positions
+  const [positions] = useState(() => generatePositions(100));
+  
+  // Create 15 flash effects that will randomly pick from these positions
+  const flashCount = 100;
 
   return (
-    <section className="w-full py-24 md:py-32 bg-black relative overflow-hidden">
+    <section className="w-full py-24 md:py-32 min-h-screen bg-black relative overflow-hidden">
       <style jsx>{`
+        @keyframes flash {
+          0% {
+            opacity: 0;
+            transform: scale(0.2);
+          }
+          10% {
+            opacity: 1;
+            transform: scale(1.2);
+          }
+          20%, 100% {
+            opacity: 0;
+            transform: scale(0.2);
+          }
+        }
+
         @keyframes wave {
           0% {
             background-position: 0% 50%, 0% 50%;
@@ -182,14 +187,8 @@ const ShowcaseSection = () => {
         }
       `}</style>
       
-      {flashes.map((flash) => (
-        <FlashEffect
-          key={flash.id}
-          top={flash.top}
-          left={flash.left}
-          delay={flash.delay}
-          scale={flash.scale}
-        />
+      {Array.from({ length: flashCount }).map((_, index) => (
+        <FlashEffect key={index} positions={positions} />
       ))}
 
       <div className="container mx-auto px-4 relative z-10">
@@ -207,65 +206,74 @@ const ShowcaseSection = () => {
           Shows jsou <span className="wild-text">Wild</span>
         </motion.h2>
         
-        <div className="max-w-2xl mx-auto">
-          <motion.div 
-            className="grid grid-cols-2 gap-3 md:gap-4"
-            initial="hidden"
-            whileInView="visible"
-            exit="exit"
-            viewport={{ 
-              once: false,
-              amount: 0.3 
-            }}
-            variants={{
-              visible: {
-                transition: {
-                  staggerChildren: 0.2
-                }
-              },
-              exit: {
-                transition: {
-                  staggerChildren: 0.1,
-                  staggerDirection: -1
-                }
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="text-center mb-12"
+        >
+          <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">Showcase</h2>
+          <p className="text-xl text-gray-400">Check out our latest work</p>
+        </motion.div>
+
+        <motion.div 
+          className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8"
+          initial="hidden"
+          whileInView="visible"
+          exit="exit"
+          viewport={{ 
+            once: false,
+            amount: 0.3 
+          }}
+          variants={{
+            visible: {
+              transition: {
+                staggerChildren: 0.2
               }
-            }}
-          >
-            {showcaseData.map((item, index) => (
-              <motion.div
-                key={item.id}
-                variants={{
-                  hidden: { 
-                    opacity: 0, 
-                    x: index % 2 === 0 ? -50 : 50 
-                  },
-                  visible: {
-                    opacity: 1,
-                    x: 0,
-                    transition: {
-                      duration: 0.8,
-                      ease: "easeOut"
-                    }
-                  },
-                  exit: {
-                    opacity: 0,
-                    x: index % 2 === 0 ? -50 : 50,
-                    transition: {
-                      duration: 0.6,
-                      ease: "easeIn"
-                    }
+            },
+            exit: {
+              transition: {
+                staggerChildren: 0.1,
+                staggerDirection: -1
+              }
+            }
+          }}
+        >
+          {showcaseData.map((item, index) => (
+            <motion.div
+              key={item.id}
+              variants={{
+                hidden: { 
+                  opacity: 0, 
+                  y: 50
+                },
+                visible: {
+                  opacity: 1,
+                  y: 0,
+                  transition: {
+                    duration: 0.8,
+                    ease: "easeOut"
                   }
-                }}
-              >
-                <ShowcaseCard
-                  title={item.title}
-                  videoUrl={item.videoUrl}
-                  description={item.description}
-                />
-              </motion.div>
-            ))}
-          </motion.div>
-        </div>
+                },
+                exit: {
+                  opacity: 0,
+                  y: -50,
+                  transition: {
+                    duration: 0.6,
+                    ease: "easeIn"
+                  }
+                }
+              }}
+              className="group relative"
+            >
+              <ShowcaseCard
+                title={item.title}
+                videoUrl={item.videoUrl}
+                description={item.description}
+              />
+            </motion.div>
+          ))}
+        </motion.div>
       </div>
     </section>
   );

@@ -18,7 +18,7 @@ function HeroSection() {
     // Main section container with animation
     <motion.section 
       id="home" 
-      className="min-h-screen flex flex-col items-center justify-center bg-neutral-50 px-4 sm:px-8 md:px-12 pt-safe md:pt-16 pb-1 md:pb-12 relative overflow-hidden"
+      className="md:min-h-screen pt-24 pb-12 flex flex-col items-center justify-center bg-neutral-50 px-4 sm:px-8 md:px-12 pt-safe md:pt-16 pb-1 md:pb-12 relative overflow-hidden"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
@@ -60,9 +60,9 @@ function HeroSection() {
         {/* Text content container with responsive padding and margins */}
         <div className="text-center mb-8 sm:mb-0 md:mb-0 px-4 sm:px-8 md:px-12">
           {/* Main heading with responsive font sizes and spacing */}
-          <h1 className="text-5xl sm:text-6xl md:text-8xl font-extrabold tracking-tighter pt-16 sm:pt-20 mb-6 sm:mb-8">Frank Wild</h1>
+          <h1 className="text-6xl sm:text-6xl md:text-8xl font-extrabold tracking-tighter pt-16 sm:pt-20 mb-4 sm:mb-8">Frank Wild</h1>
           {/* Subheading with responsive sizing and max-width for better readability */}
-          <h2 className="text-xl sm:text-2xl md:text-3xl text-muted-foreground max-w-[80%] mx-auto">Hudební videa, která trhají rekordy</h2>
+          <h2 className="text-xl sm:text-2xl md:text-3xl text-muted-foreground max-w-[80%] mx-auto pb-8 md:pb-0">Hudební videa, která trhají rekordy</h2>
         </div>
         {/* Video carousel container with max-width and centering */}
         <div className="w-full max-w-lg mx-auto">
