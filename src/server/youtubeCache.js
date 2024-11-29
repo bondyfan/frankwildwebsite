@@ -65,17 +65,16 @@ function isCacheValid(cache) {
 
   const lastUpdate = new Date(cache.lastUpdate);
   const now = new Date();
-
-  // Check if the dates are from the same day
-  const isSameDay = 
-    lastUpdate.getFullYear() === now.getFullYear() &&
-    lastUpdate.getMonth() === now.getMonth() &&
-    lastUpdate.getDate() === now.getDate();
+  
+  // Check if less than 12 hours have passed
+  const hoursSinceLastUpdate = (now - lastUpdate) / (1000 * 60 * 60);
+  const isValid = hoursSinceLastUpdate < 12;
 
   console.log(`Youtube Cache validation: Last update was ${lastUpdate.toLocaleString()}`);
-  console.log(`Youtube Cache validation result: ${isSameDay ? 'VALID (same day)' : 'INVALID (different day)'}`);
+  console.log(`Youtube Cache validation: Hours since last update: ${hoursSinceLastUpdate.toFixed(2)}`);
+  console.log(`Youtube Cache validation result: ${isValid ? 'VALID (< 12 hours)' : 'INVALID (> 12 hours)'}`);
 
-  return isSameDay;
+  return isValid;
 }
 
 let dailyUpdateInProgress = false;

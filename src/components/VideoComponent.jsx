@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import ColorThief from 'colorthief';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatViews } from '../utils/formatters';
@@ -28,8 +29,8 @@ async function fetchAllViews() {
 function VideoComponent({ video, onColorExtracted, isClickable, isVisible = true }) {
   const [thumbnailUrl, setThumbnailUrl] = useState('');
   const [thumbnailLoaded, setThumbnailLoaded] = useState(false);
+  const [views, setViews] = useState(null);
   const viewsData = useYoutubeData();
-  const views = viewsData[video.title];
 
   useEffect(() => {
     let mounted = true;
@@ -37,7 +38,7 @@ function VideoComponent({ video, onColorExtracted, isClickable, isVisible = true
     const getViews = async () => {
       const allViews = await fetchAllViews();
       if (mounted && allViews) {
-        // setViews(allViews[video.title]);
+        setViews(allViews[video.title]);
       }
     };
 
