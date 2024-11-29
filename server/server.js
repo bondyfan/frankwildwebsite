@@ -29,9 +29,10 @@ const lastApiCall = {
 
 // Video ID mapping
 const VIDEO_IDS = {
-  "Upír Dex": "aMXdZODjmqA",
-  "Vezmu Si Tě Do Pekla": "Wm8QjIHEXqY",
-  "Hafo": "Oe4ZOWtYgKY",
+  "Hafo": "IX3j84DJAGo",
+  "Vezmu Si Tě Do Pekla": "wup3ChHramo",
+  "Upír Dex": "TO1BHE8gFTE",
+  "Hafo (alternate)": "i4NOEx2-6xk",
   "Zabil Jsem Svou Holku": "Oe4ZOWtYgKY",
   "Bunny Hop": "Oe4ZOWtYgKY",
   "HOT": "Oe4ZOWtYgKY"
