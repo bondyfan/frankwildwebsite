@@ -3,32 +3,51 @@ import axios from 'axios';
 import { API_URL } from '../config';
 import staticViewsCache from '../data/viewsCache.json';
 
-let memoryCache = null;
-let lastFetchTime = null;
+const LOCAL_STORAGE_KEY = 'frankwild_views_cache';
 
 export function useYoutubeData() {
-  const [views, setViews] = useState(staticViewsCache.views);
+  const [views, setViews] = useState(() => {
+    // Try to get localStorage data on initial render
+    try {
+      const cached = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (cached) {
+        const { data, timestamp } = JSON.parse(cached);
+        const staticTimestamp = new Date(staticViewsCache.lastUpdated).getTime();
+        
+        // Use localStorage data if it's newer than static cache
+        if (timestamp > staticTimestamp) {
+          console.log('Using newer localStorage cache');
+          return data;
+        }
+      }
+    } catch (error) {
+      console.warn('Error reading from localStorage:', error);
+    }
+    
+    // Fall back to static cache
+    console.log('Using static cache');
+    return staticViewsCache.views;
+  });
 
   useEffect(() => {
     const fetchViews = async () => {
       try {
-        // Use memory cache if it's less than 1 minute old
-        if (memoryCache && lastFetchTime && (Date.now() - lastFetchTime) < 60000) {
-          setViews(memoryCache);
-          return;
-        }
-
-        // Try to fetch fresh data
+        console.log('Fetching fresh data from API');
         const response = await axios.get(`${API_URL}/api/youtube-stats`);
-        memoryCache = response.data;
-        lastFetchTime = Date.now();
+        
+        // Save to localStorage with timestamp
+        const newCache = {
+          data: response.data,
+          timestamp: Date.now()
+        };
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(newCache));
+        
+        // Update state
         setViews(response.data);
+        
       } catch (error) {
-        console.error('Error fetching video stats:', error);
-        // Keep using static cache if API fails
-        if (Object.keys(views).length === 0) {
-          setViews(staticViewsCache.views);
-        }
+        console.warn('Error fetching video stats:', error);
+        // Keep current views (either from localStorage or static cache)
       }
     };
 
