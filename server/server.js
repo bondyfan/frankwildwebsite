@@ -33,9 +33,9 @@ const VIDEO_IDS = {
   "Vezmu Si Tě Do Pekla": "wup3ChHramo",
   "Upír Dex": "TO1BHE8gFTE",
   "Hafo (alternate)": "i4NOEx2-6xk",
-  "Zabil Jsem Svou Holku": "Oe4ZOWtYgKY",
-  "Bunny Hop": "Oe4ZOWtYgKY",
-  "HOT": "Oe4ZOWtYgKY"
+  "Zabil Jsem Svou Holku": "WVzjgCNCyaY",
+  "Bunny Hop": "3rLKWDAlOTE",
+  "HOT": "bFbH9hg2yKg"
 };
 
 async function fetchVideoStats(videoId) {
