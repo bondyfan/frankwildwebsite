@@ -89,6 +89,16 @@ app.get('/api/monitor', (req, res) => {
   res.json(stats);
 });
 
+// Add test endpoint for API key
+app.get('/api/test-key', (req, res) => {
+  const apiKey = process.env.YOUTUBE_API_KEY;
+  res.json({
+    keyExists: !!apiKey,
+    keyLength: apiKey ? apiKey.length : 0,
+    keyPreview: apiKey ? `${apiKey.substr(0, 4)}...${apiKey.substr(-4)}` : 'not set'
+  });
+});
+
 app.get('/api/youtube-stats', async (req, res) => {
   console.log('Received request for YouTube stats');
   try {
