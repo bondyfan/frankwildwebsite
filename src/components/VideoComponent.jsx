@@ -4,25 +4,25 @@ import ColorThief from 'colorthief';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatViews } from '../utils/formatters';
 import { useYoutubeData } from '../hooks/useYoutubeData';
+import { API_URL } from '../config';
 
 // Shared function to fetch views for all videos
-async function fetchAllViews() {
-  // If cache exists and is less than 1 minute old, use it
-  let viewsCache = null;
-  let lastFetchTime = null;
-  if (viewsCache && lastFetchTime && (Date.now() - lastFetchTime) < 60000) {
-    return viewsCache;
-  }
+let viewsCache = null;
+let lastFetchTime = null;
 
+async function fetchAllViews() {
   try {
-    // Use relative path for API requests (works with Vite proxy)
-    const response = await axios.get('/api/youtube-stats');
+    if (viewsCache && lastFetchTime && (Date.now() - lastFetchTime) < 60000) {
+      return viewsCache;
+    }
+
+    const response = await axios.get(`${API_URL}/api/youtube-stats`);
     viewsCache = response.data;
     lastFetchTime = Date.now();
-    return viewsCache;
+    return response.data;
   } catch (error) {
     console.error('Error fetching video stats:', error);
-    return null;
+    return {};
   }
 }
 
