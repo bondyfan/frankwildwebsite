@@ -77,16 +77,20 @@ app.get('/api/monitor', (req, res) => {
 });
 
 app.get('/api/youtube-stats', async (req, res) => {
+  console.log('Received request for YouTube stats');
   try {
     // Check cache first
     const cachedStats = cache.get('youtube-stats');
     if (cachedStats) {
+      console.log('Returning cached stats:', cachedStats);
       return res.json(cachedStats);
     }
 
+    console.log('Cache miss, fetching fresh stats from YouTube API');
     // Fetch real stats from YouTube API
     const stats = {};
     for (const [title, videoId] of Object.entries(VIDEO_IDS)) {
+      console.log(`Fetching stats for video: ${title} (${videoId})`);
       const views = await fetchVideoStats(videoId);
       if (views) {
         stats[title] = parseInt(views);
@@ -94,6 +98,7 @@ app.get('/api/youtube-stats', async (req, res) => {
     }
 
     // Cache the results
+    console.log('Caching and returning fresh stats:', stats);
     cache.set('youtube-stats', stats);
     res.json(stats);
   } catch (error) {
