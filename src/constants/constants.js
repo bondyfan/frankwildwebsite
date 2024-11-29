@@ -1,32 +1,38 @@
 // Media Section Constants
+// Import images
+import refresherImg from '../assets/media/refresher.jpg';
+import instagramImg from '../assets/media/instagram.jpg';
+import newstreamImg from '../assets/media/newstream.jpg';
+import extraImg from '../assets/media/extra.jpg';
+
 export const blogPosts = [
   {
     title: "Češi si jako gólovou znělku na mistrovství světa zvolili Hafo od Franka Wilda",
     source: "Refresher",
     url: "https://refresher.cz/135341-Cesi-si-jako-golovou-znelku-na-mistrovstvi-sveta-zvolili-Hafo-od-Franka-Wilda-a-Kafuu",
     excerpt: "Čeští fanoušci rozhodli. Gólovou znělkou na mistrovství světa v hokeji 2024 bude hit Hafo.",
-    image: "/src/assets/media/refresher.jpg"
+    image: refresherImg
   },
   {
     title: "Frank Wild obsadil první 2 místa v trendech Youtube. Upír Dex a Zabil Jsem Svou Holku",
     source: "Óčko - Instagram",
     url: "https://www.instagram.com/p/CzG5AppK-Dm/?igsh=Ym10dDlub3Y0bHlz",
     excerpt: "Oficiální Instagram profil Franka Wilda a Kafuu přináší exkluzivní pohled do zákulisí.",
-    image: "/src/assets/media/instagram.jpg"
+    image: instagramImg
   },
   {
     title: "Český internet válcuje podivný hit Hafo. Je chytřejší, než se zdá",
     source: "Newstream",
     url: "https://www.newstream.cz/enjoy/stanislav-sulc-cesky-internet-valcuje-podivny-hit-hafo-je-chytrejsi-nez-se-zda",
     excerpt: "Analýza fenoménu Hafo a jeho dopadu na českou internetovou kulturu.",
-    image: "/src/assets/media/newstream.jpg"
+    image: newstreamImg
   },
   {
     title: "Ukazuje ass, já slintám jak pes. Lascivní píseň Hafo doslova trhá rekordy",
     source: "Extra.cz",
     url: "https://www.extra.cz/ukazuje-ass-ja-slintam-jak-pes-nestydata-kafuu-s-lascivni-pisni-hafo-doslova-trha-rekordy-c4f7e",
-    excerpt: "Hit Hafo láme rekordy sledovanosti a získává si pozornost médií.",
-    image: "/src/assets/media/extra.jpg"
+    excerpt: "Hit Hafo se stal virálním fenoménem na českém internetu.",
+    image: extraImg
   }
 ];
 
