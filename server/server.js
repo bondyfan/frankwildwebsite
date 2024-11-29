@@ -44,7 +44,8 @@ async function fetchVideoStats(videoId) {
     lastApiCall.counts[currentDate] = (lastApiCall.counts[currentDate] || 0) + 1;
     lastApiCall.timestamp = new Date().toISOString();
     
-    console.log('YouTube API Key:', process.env.YOUTUBE_API_KEY ? 'Is set' : 'Is NOT set');
+    const apiKey = process.env.YOUTUBE_API_KEY;
+    console.log('YouTube API Key:', apiKey ? `${apiKey.substr(0, 4)}...${apiKey.substr(-4)}` : 'Is NOT set');
     
     const url = `https://www.googleapis.com/youtube/v3/videos`;
     console.log('Making request to YouTube API:', url);
@@ -53,7 +54,7 @@ async function fetchVideoStats(videoId) {
       params: {
         part: 'statistics',
         id: videoId,
-        key: process.env.YOUTUBE_API_KEY
+        key: apiKey
       }
     });
 
@@ -64,7 +65,7 @@ async function fetchVideoStats(videoId) {
     }
     return null;
   } catch (error) {
-    console.error('Error fetching stats for video ${videoId}:');
+    console.error(`Error fetching stats for video ${videoId}:`);
     console.error('Error message:', error.message);
     if (error.response) {
       console.error('Error response data:', JSON.stringify(error.response.data, null, 2));
