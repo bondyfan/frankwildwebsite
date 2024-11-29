@@ -115,31 +115,45 @@ app.get('/api/test-key', (req, res) => {
 app.get('/api/youtube-stats', async (req, res) => {
   console.log('Received request for YouTube stats');
   try {
-    // Check cache first
+    const stats = {};
     const cachedStats = cache.get('youtube-stats');
+    
     if (cachedStats) {
       console.log('Returning cached stats:', cachedStats);
       return res.json(cachedStats);
     }
 
     console.log('Cache miss, fetching fresh stats from YouTube API');
-    // Fetch real stats from YouTube API
-    const stats = {};
     for (const [title, videoId] of Object.entries(VIDEO_IDS)) {
-      console.log(`Fetching stats for video: ${title} (${videoId})`);
-      const views = await fetchVideoStats(videoId);
-      if (views) {
-        stats[title] = parseInt(views);
+      const viewCount = await fetchVideoStats(videoId);
+      if (viewCount) {
+        if (title === "Hafo") {
+          // For Hafo, we'll store the count but not add it to stats yet
+          stats["_hafo_main"] = parseInt(viewCount);
+        } else if (title === "Hafo (alternate)") {
+          // For alternate Hafo, combine with main Hafo count
+          const mainHafoCount = stats["_hafo_main"] || 0;
+          stats["Hafo"] = mainHafoCount + parseInt(viewCount);
+          // Remove the temporary main count
+          delete stats["_hafo_main"];
+        } else {
+          stats[title] = parseInt(viewCount);
+        }
       }
     }
 
-    // Cache the results
+    // If we have _hafo_main but never got alternate, just use main count
+    if (stats["_hafo_main"]) {
+      stats["Hafo"] = stats["_hafo_main"];
+      delete stats["_hafo_main"];
+    }
+
     console.log('Caching and returning fresh stats:', stats);
-    cache.set('youtube-stats', stats);
+    cache.set('youtube-stats', stats, 3600); // Cache for 1 hour
     res.json(stats);
   } catch (error) {
-    console.error('Error fetching YouTube stats:', error);
-    res.status(500).json({ error: 'Failed to fetch video stats' });
+    console.error('Error in /api/youtube-stats:', error);
+    res.status(500).json({ error: 'Failed to fetch video statistics' });
   }
 });
 
