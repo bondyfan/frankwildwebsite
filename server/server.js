@@ -45,31 +45,43 @@ async function fetchVideoStats(videoId) {
     lastApiCall.timestamp = new Date().toISOString();
     
     const apiKey = process.env.YOUTUBE_API_KEY;
-    console.log('YouTube API Key:', apiKey ? `${apiKey.substr(0, 4)}...${apiKey.substr(-4)}` : 'Is NOT set');
+    console.log(`Fetching stats for video ${videoId} with API key ${apiKey.substr(0, 4)}...${apiKey.substr(-4)}`);
     
-    const url = `https://www.googleapis.com/youtube/v3/videos`;
-    console.log('Making request to YouTube API:', url);
+    const url = 'https://www.googleapis.com/youtube/v3/videos';
+    const params = {
+      part: 'statistics',
+      id: videoId,
+      key: apiKey
+    };
     
-    const response = await axios.get(url, {
-      params: {
-        part: 'statistics',
-        id: videoId,
-        key: apiKey
-      }
-    });
-
-    console.log('YouTube API Response:', JSON.stringify(response.data, null, 2));
-
-    if (response.data.items && response.data.items[0]) {
-      return response.data.items[0].statistics.viewCount;
+    console.log('Request URL:', url);
+    console.log('Request params:', JSON.stringify(params));
+    
+    const response = await axios.get(url, { params });
+    
+    if (!response.data) {
+      console.error('No data in response');
+      return null;
     }
-    return null;
+    
+    console.log('Full API Response:', JSON.stringify(response.data, null, 2));
+    
+    if (!response.data.items || response.data.items.length === 0) {
+      console.error(`No items found for video ${videoId}`);
+      return null;
+    }
+    
+    return response.data.items[0].statistics.viewCount;
   } catch (error) {
     console.error(`Error fetching stats for video ${videoId}:`);
+    console.error('Error name:', error.name);
     console.error('Error message:', error.message);
     if (error.response) {
-      console.error('Error response data:', JSON.stringify(error.response.data, null, 2));
-      console.error('Error response status:', error.response.status);
+      console.error('Error status:', error.response.status);
+      console.error('Error data:', JSON.stringify(error.response.data, null, 2));
+    } else if (error.request) {
+      console.error('No response received');
+      console.error('Request details:', error.request);
     }
     return null;
   }
