@@ -7,8 +7,12 @@ const axios = require('axios');
 const app = express();
 const cache = new NodeCache({ stdTTL: 86400 }); // Change cache TTL to 24 hours (86400 seconds)
 
-// Enable CORS for all routes
-app.use(cors());
+// Enable CORS for all routes with specific origin
+app.use(cors({
+  origin: process.env.ALLOWED_ORIGINS || '*',
+  methods: ['GET', 'POST', 'OPTIONS'],
+  credentials: true
+}));
 
 // Add request logging middleware
 app.use((req, res, next) => {
@@ -109,7 +113,7 @@ app.use((req, res) => {
   res.status(404).json({ error: `Cannot ${req.method} ${req.path}` });
 });
 
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`API monitoring available at http://localhost:${PORT}/api/monitor`);
