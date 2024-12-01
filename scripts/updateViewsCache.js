@@ -8,6 +8,16 @@ const { videos } = require('../src/constants/constants');
 const CACHE_PATH = path.join(__dirname, '../src/data/viewsCache.json');
 const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
 
+async function readExistingCache() {
+  try {
+    const data = await fs.readFile(CACHE_PATH, 'utf8');
+    return JSON.parse(data);
+  } catch (error) {
+    console.log('No existing cache found or invalid JSON');
+    return { views: {}, lastUpdated: null };
+  }
+}
+
 if (!YOUTUBE_API_KEY) {
   console.error('YOUTUBE_API_KEY environment variable is required');
   process.exit(1);
@@ -29,44 +39,63 @@ async function fetchVideoViews(videoId) {
       return parseInt(response.data.items[0].statistics.viewCount, 10);
     }
     console.warn(`No data found for video ${videoId}`);
-    return 0;
+    return null;
   } catch (error) {
     console.error(`Error fetching stats for video ${videoId}:`, error.message);
-    return 0;
+    return null;
   }
 }
 
 async function updateViewsCache() {
   try {
-    const viewsData = {};
+    const existingCache = await readExistingCache();
+    const viewsData = { ...existingCache.views };
+    let hasNewData = false;
 
     // Process all videos
     for (const video of videos) {
       if (video.videoIds) {
         // Handle multiple video IDs (like Hafo)
         let totalViews = 0;
+        let validCount = 0;
+        
         for (const id of video.videoIds) {
           const views = await fetchVideoViews(id);
-          totalViews += views;
+          if (views !== null) {
+            totalViews += views;
+            validCount++;
+          }
         }
-        viewsData[video.title] = totalViews;
+
+        // Only update if we got at least one valid view count
+        if (validCount > 0) {
+          viewsData[video.id] = totalViews;
+          hasNewData = true;
+        }
       } else if (video.videoId) {
         // Handle single video ID
         const views = await fetchVideoViews(video.videoId);
-        viewsData[video.title] = views;
+        if (views !== null) {
+          viewsData[video.id] = views;
+          hasNewData = true;
+        }
       }
     }
 
-    const cacheData = {
-      lastUpdated: new Date().toISOString(),
-      views: viewsData
-    };
+    // Only write to cache if we got new data
+    if (hasNewData) {
+      const cacheData = {
+        views: viewsData,
+        lastUpdated: new Date().toISOString()
+      };
 
-    await fs.writeFile(CACHE_PATH, JSON.stringify(cacheData, null, 2));
-    console.log('Successfully updated views cache with YouTube data');
-    
+      await fs.writeFile(CACHE_PATH, JSON.stringify(cacheData, null, 2));
+      console.log('Views cache updated successfully');
+    } else {
+      console.log('No new data fetched, keeping existing cache');
+    }
   } catch (error) {
-    console.error('Error in cache update process:', error);
+    console.error('Error updating views cache:', error);
     process.exit(1);
   }
 }
