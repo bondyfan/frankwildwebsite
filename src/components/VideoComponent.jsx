@@ -9,7 +9,8 @@ import { API_URL } from '../config';
 function VideoComponent({ video, onColorExtracted, isClickable, isVisible = true }) {
   const [thumbnailUrl, setThumbnailUrl] = useState('');
   const [thumbnailLoaded, setThumbnailLoaded] = useState(false);
-  const views = useYoutubeData()[video.title];
+  const viewsData = useYoutubeData();
+  const views = video.id ? viewsData[video.id] : undefined;
 
   useEffect(() => {
     const videoId = video.videoId || (video.videoIds && video.videoIds[0]);
