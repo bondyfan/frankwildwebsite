@@ -1,11 +1,14 @@
-const { google } = require('googleapis');
-const fs = require('fs').promises;
-const path = require('path');
+import { google } from 'googleapis';
+import { promises as fs } from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+import { videos } from '../src/constants/constants.js';
 
-// Import video IDs from constants
-const { videos } = require('../src/constants/constants');
+// Get __dirname equivalent in ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
-const CACHE_PATH = path.join(__dirname, '../src/data/viewsCache.json');
+const CACHE_PATH = join(__dirname, '../src/data/viewsCache.json');
 const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
 
 async function readExistingCache() {
