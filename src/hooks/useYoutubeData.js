@@ -7,7 +7,13 @@ const LOCAL_STORAGE_KEY = 'frankwild_views_cache';
 
 export function useYoutubeData() {
   const [views, setViews] = useState(() => {
-    // Try to get localStorage data first
+    // Always start with static cache for immediate display
+    console.log('Using static cache:', staticViewsCache.views);
+    return staticViewsCache.views;
+  });
+
+  useEffect(() => {
+    // Try to get localStorage data
     try {
       const cached = localStorage.getItem(LOCAL_STORAGE_KEY);
       if (cached) {
@@ -17,19 +23,14 @@ export function useYoutubeData() {
         // Use localStorage data if it's newer than static cache
         if (timestamp > staticTimestamp) {
           console.log('Using newer localStorage cache');
-          return data;
+          setViews(data);
         }
       }
     } catch (error) {
       console.warn('Error reading from localStorage:', error);
     }
-    
-    // Fall back to static cache
-    console.log('Using static cache');
-    return staticViewsCache.views;
-  });
 
-  useEffect(() => {
+    // Try API in the background
     const fetchViews = async () => {
       try {
         console.log('Fetching fresh data from API');
@@ -44,15 +45,14 @@ export function useYoutubeData() {
         
         // Update state
         setViews(response.data);
-        
       } catch (error) {
         console.warn('Error fetching video stats:', error);
-        // Keep showing whatever data we have (either from localStorage or static cache)
+        // Keep showing static cache data
       }
     };
 
     fetchViews();
-  }, []);
+  }, []); // Run once on mount
 
   return views;
 }
