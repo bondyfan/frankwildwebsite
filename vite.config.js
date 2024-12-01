@@ -23,5 +23,14 @@ export default defineConfig({
         }
       }
     }
+  },
+  build: {
+    rollupOptions: {
+      input: {
+        main: '/index.html'
+      }
+    },
+    // Ensure JSON files are copied to build output
+    assetsInclude: ['**/*.json']
   }
 })
