@@ -116,15 +116,20 @@ function VideoCarousel({ videos: initialVideos, onSlideChange }) {
           style={{
             scrollBehavior: 'smooth',
             WebkitOverflowScrolling: 'touch',
-            paddingLeft: "calc(50vw - 41vw)",
-            paddingRight: "calc(50vw - 41vw)",
+            paddingLeft: "calc(50vw - 20vw)",
+            paddingRight: "calc(50vw - 20vw)",
           }}
         >
           {sortedVideos.map((video, index) => (
             <div 
               key={index} 
-              className="carousel-item flex-none w-[82vw] snap-center px-6 transform transition-transform"
+              className="carousel-item flex-none snap-center transform transition-transform"
               data-index={index}
+              style={{
+                width: isMobile ? 'calc(75vw)' : 'calc(50vw)',
+                marginRight: isMobile ? 'calc(8vw)' : 'calc(4vw)',
+                padding: isMobile ? '0 calc(4vw)' : '0 calc(2vw)'
+              }}
             >
               <div className="video-component">
                 <VideoComponent 

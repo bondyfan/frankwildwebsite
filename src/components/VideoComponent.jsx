@@ -49,7 +49,7 @@ function VideoComponent({ video, onColorExtracted, isClickable, isVisible = true
     <motion.div
       className="flex flex-col items-center"
     >
-      <div onClick={handleClick} className={`cursor-pointer w-[320px] md:w-[400px] lg:w-[480px] ${isClickable ? 'hover:opacity-90' : ''}`}>
+      <div onClick={handleClick} className={`cursor-pointer w-[75vw] md:w-[50vw] lg:w-[32vw] ${isClickable ? 'hover:opacity-90' : ''}`}>
         <div className="rounded-2xl overflow-hidden shadow-xl bg-white border border-gray-100 transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl">
           <div className="relative w-full aspect-video bg-black overflow-hidden">
             {thumbnailUrl && (

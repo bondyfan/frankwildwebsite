@@ -7,7 +7,7 @@ const LOCAL_STORAGE_KEY = 'frankwild_views_cache';
 
 export function useYoutubeData() {
   const [views, setViews] = useState(() => {
-    // Try to get localStorage data on initial render
+    // Try to get localStorage data first
     try {
       const cached = localStorage.getItem(LOCAL_STORAGE_KEY);
       if (cached) {
@@ -47,7 +47,7 @@ export function useYoutubeData() {
         
       } catch (error) {
         console.warn('Error fetching video stats:', error);
-        // Keep current views (either from localStorage or static cache)
+        // Keep showing whatever data we have (either from localStorage or static cache)
       }
     };
 

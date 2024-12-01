@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "concurrently \"vite\" \"node server.js\"",
     "dev:host": "concurrently \"vite --host\" \"node server.js\"",
-    "build": "vite build",
+    "build": "npm run update-views && vite build",
     "preview": "vite preview",
     "start-api": "node server.js",
     "start-vite": "vite",
