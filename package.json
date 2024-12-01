@@ -4,13 +4,11 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently \"vite\" \"node server.js\"",
-    "dev:host": "concurrently \"vite --host\" \"node server.js\"",
+    "dev": "vite",
+    "dev:host": "vite --host",
     "prebuild": "npm install",
     "build": "npm run update-views && vite build",
     "preview": "vite preview",
-    "start-api": "node server.js",
-    "start-vite": "vite",
     "update-views": "node scripts/updateViewsCache.js"
   },
   "dependencies": {

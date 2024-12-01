@@ -4,9 +4,6 @@ import refresherImg from '../assets/media/refresher.jpg';
 import instagramImg from '../assets/media/instagram.jpg';
 import newstreamImg from '../assets/media/newstream.jpg';
 import extraImg from '../assets/media/extra.jpg';
-import { videos } from './videos.js';
-
-export { videos };
 
 // Blog Posts
 export const blogPosts = [
@@ -38,6 +35,40 @@ export const blogPosts = [
     excerpt: "Hit Hafo se stal virálním fenoménem na českém internetu.",
     image: extraImg
   }
+];
+
+// Video Section Constants
+export const videos = [
+  {
+    id: "hafo",
+    title: "Hafo",
+    videoIds: ["IX3j84DJAGo", "i4NOEx2-6xk"],
+  },
+  {
+    id: "vezmu-si-te",
+    title: "Vezmu Si Tě Do Pekla",
+    videoId: "wup3ChHramo",
+  },
+  {
+    id: "upir-dex",
+    title: "Upír Dex",
+    videoId: "TO1BHE8gFTE",
+  },
+  {
+    id: "bunny-hop",
+    title: "Bunny Hop",
+    videoId: "3rLKWDAlOTE",
+  },
+  {
+    id: "hot",
+    title: "HOT",
+    videoId: "bFbH9hg2yKg",
+  },
+  {
+    id: "zabil-jsem",
+    title: "Zabil Jsem Svou Holku",
+    videoId: "WVzjgCNCyaY",
+  },
 ];
 
 // Video Gradient Mapping
