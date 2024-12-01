@@ -36,17 +36,45 @@ export function useYoutubeData() {
         console.log('Fetching fresh data from API');
         const response = await axios.get(`${API_URL}/api/youtube-stats`);
         
-        // Save to localStorage with timestamp
-        const newCache = {
-          data: response.data,
-          timestamp: Date.now()
-        };
-        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(newCache));
+        // Normalize the response data to match our cache format
+        const normalizedData = {};
+        if (response.data && typeof response.data === 'object') {
+          // If response.data is already in the right format (id -> views)
+          if (Object.values(response.data).every(v => typeof v === 'number')) {
+            normalizedData = response.data;
+          } 
+          // If response.data has a different structure, try to normalize it
+          else {
+            Object.entries(response.data).forEach(([key, value]) => {
+              // Handle different possible response formats
+              if (typeof value === 'number') {
+                normalizedData[key] = value;
+              } else if (value && typeof value.viewCount === 'number') {
+                normalizedData[key] = value.viewCount;
+              } else if (value && typeof value.views === 'number') {
+                normalizedData[key] = value.views;
+              }
+            });
+          }
+        }
         
-        // Update state
-        setViews(response.data);
+        // Only update if we got valid data
+        if (Object.keys(normalizedData).length > 0) {
+          // Save to localStorage with timestamp
+          const newCache = {
+            data: normalizedData,
+            timestamp: Date.now()
+          };
+          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(newCache));
+          
+          // Update state
+          setViews(normalizedData);
+          console.log('Updated views with API data:', normalizedData);
+        } else {
+          console.warn('Invalid API response format:', response.data);
+        }
       } catch (error) {
-        console.warn('Error fetching video stats:', error);
+        console.error('Error fetching video stats:', error);
         // Keep showing static cache data
       }
     };
