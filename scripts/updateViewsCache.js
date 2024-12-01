@@ -2,7 +2,7 @@ import { google } from 'googleapis';
 import { promises as fs } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import { videos } from '../src/constants/constants.js';
+import { videos } from './videoData.js';
 
 // Get __dirname equivalent in ES modules
 const __filename = fileURLToPath(import.meta.url);
