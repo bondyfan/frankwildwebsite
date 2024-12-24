@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import styles from './ShowcaseSection.module.css';
 
 const generatePositions = (count) => {
   return Array.from({ length: count }, () => ({
@@ -25,12 +26,10 @@ const FlashEffect = ({ positions }) => {
   return (
     <div 
       key={key}
-      className="absolute w-6 h-6 opacity-0"
+      className={`absolute w-6 h-6 opacity-0 ${styles.flashAnimation}`}
       style={{
         top: `${currentPosition.top}%`,
-        left: `${currentPosition.left}%`,
-        animation: 'flash 0.3s linear',
-        animationIterationCount: '1',
+        left: `${currentPosition.left}%`
       }}
     >
       {/* Outer glow */}
@@ -112,81 +111,6 @@ const ShowcaseSection = () => {
 
   return (
     <section className="w-full py-24 md:py-32 min-h-screen bg-black relative overflow-hidden">
-      <style jsx>{`
-        @keyframes flash {
-          0% {
-            opacity: 0;
-            transform: scale(0.2);
-          }
-          10% {
-            opacity: 1;
-            transform: scale(1.2);
-          }
-          20%, 100% {
-            opacity: 0;
-            transform: scale(0.2);
-          }
-        }
-
-        @keyframes wave {
-          0% {
-            background-position: 0% 50%, 0% 50%;
-            filter: hue-rotate(0deg);
-          }
-          100% {
-            background-position: -200% 50%, -200% 50%;
-            filter: hue-rotate(0deg);
-          }
-        }
-
-        .wild-text {
-          background-image: 
-            linear-gradient(
-              -45deg,
-              #ff1b6b 25%,
-              #85ffbd 50%,
-              #ff1b6b 75%,
-              #85ffbd 100%
-            ),
-            linear-gradient(
-              45deg,
-              transparent 25%,
-              rgba(255, 27, 107, 0.8) 50%,
-              transparent 75%,
-              rgba(133, 255, 189, 0.8) 100%
-            );
-          background-size: 200% 400%, 200% 400%;
-          -webkit-background-clip: text;
-          background-clip: text;
-          color: transparent;
-          animation: wave 2s linear infinite;
-          text-shadow: 
-            0 0 20px rgba(255, 27, 107, 0.1),
-            0 0 40px rgba(133, 255, 189, 0.1);
-          position: relative;
-          display: inline-block;
-          transform-style: preserve-3d;
-          perspective: 1000px;
-        }
-
-        .wild-text::before {
-          content: '';
-          position: absolute;
-          inset: -2px;
-          background: inherit;
-          filter: blur(8px) opacity(0.3);
-          z-index: -1;
-          transform: translateZ(-1px);
-          animation: wave 2s linear infinite;
-        }
-
-        .wild-text:hover {
-          text-shadow: 
-            0 0 30px rgba(255, 27, 107, 0.3),
-            0 0 60px rgba(133, 255, 189, 0.3);
-        }
-      `}</style>
-      
       {Array.from({ length: flashCount }).map((_, index) => (
         <FlashEffect key={index} positions={positions} />
       ))}
@@ -200,10 +124,9 @@ const ShowcaseSection = () => {
             once: false,
             amount: 0.8 
           }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
-          className="text-5xl md:text-6xl lg:text-7xl font-bold text-white text-center mb-16 tracking-tight"
+          className={`text-5xl md:text-6xl lg:text-7xl font-bold text-white text-center mb-16 tracking-tight ${styles.wildText}`}
         >
-          Shows jsou <span className="wild-text">Wild</span>
+          Shows jsou <span className={styles.wildText}>Wild</span>
         </motion.h2>
         
         <motion.div

@@ -85,13 +85,8 @@ export default function MediaSection() {
   };
 
   return (
-    <div 
-      className="relative w-full"
-      style={{
-       
-      }}
-    >
-      <section className="relative w-full pb-32   md:pt-20 md:pb-40 overflow-hidden bg-transparent">
+    <div className="relative w-full">
+      <section className="relative w-full pb-32 md:pt-20 md:pb-40 overflow-hidden bg-transparent">
         <motion.div
           className="w-full"
           initial={{ opacity: 0, scale: 0.8 }}
@@ -110,7 +105,7 @@ export default function MediaSection() {
             // Mobile scrolling view
             <div className="relative w-full">
               <div
-                className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-[7.5%]"
+                className="flex overflow-x-auto snap-x snap-mandatory scrollbar-none -mx-[7.5%]"
                 style={{
                   paddingLeft: "7.5%",
                   paddingRight: "7.5%",
@@ -166,16 +161,6 @@ export default function MediaSection() {
               </div>
             </div>
           )}
-
-          <style jsx global>{`
-            .scrollbar-hide {
-              -ms-overflow-style: none;
-              scrollbar-width: none;
-            }
-            .scrollbar-hide::-webkit-scrollbar {
-              display: none;
-            }
-          `}</style>
         </motion.div>
       </section>
     </div>

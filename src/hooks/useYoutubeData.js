@@ -1,86 +1,93 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { API_URL } from '../config';
-import staticViewsCache from '../data/viewsCache.json';
+import { VIDEO_IDS } from '../constants/constants';
+import { YOUTUBE_API_KEY } from '../config';
 
-const LOCAL_STORAGE_KEY = 'frankwild_views_cache';
+// Global cache for YouTube data
+let globalCache = null;
+let isFetching = false;
+const subscribers = new Set();
 
-export function useYoutubeData() {
-  const [views, setViews] = useState(() => {
-    // Always start with static cache for immediate display
-    console.log('Using static cache:', staticViewsCache.views);
-    return staticViewsCache.views;
+const notifySubscribers = (data) => {
+  subscribers.forEach(callback => callback(data));
+};
+
+async function fetchYouTubeData() {
+  if (!YOUTUBE_API_KEY) {
+    throw new Error('YouTube API key is not configured');
+  }
+
+  const url = 'https://www.googleapis.com/youtube/v3/videos';
+  const videoIds = Object.values(VIDEO_IDS).join(',');
+  
+  const response = await axios.get(url, {
+    params: {
+      part: 'statistics',
+      id: videoIds,
+      key: YOUTUBE_API_KEY
+    }
   });
 
+  if (!response.data || !response.data.items) {
+    throw new Error('Invalid response from YouTube API');
+  }
+
+  // Process the response
+  const viewsData = {};
+  response.data.items.forEach(item => {
+    const title = Object.entries(VIDEO_IDS).find(([_, id]) => id === item.id)?.[0];
+    if (title) {
+      viewsData[title] = parseInt(item.statistics.viewCount, 10);
+    }
+  });
+
+  return viewsData;
+}
+
+export function useYoutubeData() {
+  const [views, setViews] = useState(globalCache || {});
+  const [loading, setLoading] = useState(!globalCache);
+  const [error, setError] = useState(null);
+
   useEffect(() => {
-    // Try to get localStorage data
-    try {
-      const cached = localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (cached) {
-        const { data, timestamp } = JSON.parse(cached);
-        const staticTimestamp = new Date(staticViewsCache.lastUpdated).getTime();
-        
-        // Use localStorage data if it's newer than static cache
-        if (timestamp > staticTimestamp) {
-          console.log('Using newer localStorage cache');
-          setViews(data);
-        }
-      }
-    } catch (error) {
-      console.warn('Error reading from localStorage:', error);
+    // If we already have cached data, use it
+    if (globalCache) {
+      setViews(globalCache);
+      setLoading(false);
+      return;
     }
 
-    // Try API in the background
-    const fetchViews = async () => {
-      try {
-        console.log('Fetching fresh data from API');
-        const response = await axios.get(`${API_URL}/api/youtube-stats`);
-        
-        // Normalize the response data to match our cache format
-        const normalizedData = {};
-        if (response.data && typeof response.data === 'object') {
-          // If response.data is already in the right format (id -> views)
-          if (Object.values(response.data).every(v => typeof v === 'number')) {
-            normalizedData = response.data;
-          } 
-          // If response.data has a different structure, try to normalize it
-          else {
-            Object.entries(response.data).forEach(([key, value]) => {
-              // Handle different possible response formats
-              if (typeof value === 'number') {
-                normalizedData[key] = value;
-              } else if (value && typeof value.viewCount === 'number') {
-                normalizedData[key] = value.viewCount;
-              } else if (value && typeof value.views === 'number') {
-                normalizedData[key] = value.views;
-              }
-            });
-          }
-        }
-        
-        // Only update if we got valid data
-        if (Object.keys(normalizedData).length > 0) {
-          // Save to localStorage with timestamp
-          const newCache = {
-            data: normalizedData,
-            timestamp: Date.now()
-          };
-          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(newCache));
-          
-          // Update state
-          setViews(normalizedData);
-          console.log('Updated views with API data:', normalizedData);
-        } else {
-          console.warn('Invalid API response format:', response.data);
-        }
-      } catch (error) {
-        console.error('Error fetching video stats:', error);
-        // Keep showing static cache data
-      }
+    // Subscribe to updates
+    const handleUpdate = (data) => {
+      setViews(data);
+      setLoading(false);
+      setError(null);
     };
+    subscribers.add(handleUpdate);
 
-    fetchViews();
-  }, []); // Run once on mount
+    // If no one is currently fetching, start a fetch
+    if (!isFetching) {
+      isFetching = true;
+      fetchYouTubeData()
+        .then(data => {
+          globalCache = data;
+          notifySubscribers(data);
+        })
+        .catch(err => {
+          console.error('Error fetching YouTube stats:', err);
+          setError(err.message);
+        })
+        .finally(() => {
+          isFetching = false;
+          setLoading(false);
+        });
+    }
 
-  return views;
+    // Cleanup subscription
+    return () => {
+      subscribers.delete(handleUpdate);
+    };
+  }, []);
+
+  return { views, loading, error };
 }

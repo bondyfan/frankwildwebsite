@@ -5,6 +5,17 @@ import instagramImg from '../assets/media/instagram.jpg';
 import newstreamImg from '../assets/media/newstream.jpg';
 import extraImg from '../assets/media/extra.jpg';
 
+// YouTube Video IDs
+export const VIDEO_IDS = {
+  "Hafo": "IX3j84DJAGo",
+  "Vezmu Si Tě Do Pekla": "wup3ChHramo",
+  "Upír Dex": "TO1BHE8gFTE",
+  "Hafo (alternate)": "i4NOEx2-6xk",
+  "Zabil Jsem Svou Holku": "WVzjgCNCyaY",
+  "Bunny Hop": "3rLKWDAlOTE",
+  "HOT": "bFbH9hg2yKg"
+};
+
 // Blog Posts
 export const blogPosts = [
   {
