@@ -2,23 +2,38 @@ import { useEffect } from 'react';
 
 export function useVideoPreload(videoSrc, shouldPreload = true) {
   useEffect(() => {
-    if (!shouldPreload || !videoSrc) return;
+    if (!shouldPreload) return;
 
-    const preloadVideo = document.createElement('video');
-    preloadVideo.src = videoSrc;
-    preloadVideo.preload = 'auto';
-    preloadVideo.style.display = 'none';
-    preloadVideo.muted = true;
+    let videos = [];
+    
+    // Handle both single video and video map cases
+    if (typeof videoSrc === 'string') {
+      videos.push(videoSrc);
+    } else if (typeof videoSrc === 'object') {
+      videos = Object.values(videoSrc);
+    }
 
-    document.body.appendChild(preloadVideo);
+    const preloadElements = videos.map(src => {
+      if (!src) return null;
 
-    // Start loading the video
-    preloadVideo.load();
+      const preloadVideo = document.createElement('video');
+      preloadVideo.src = src;
+      preloadVideo.preload = 'auto';
+      preloadVideo.style.display = 'none';
+      preloadVideo.muted = true;
+
+      document.body.appendChild(preloadVideo);
+      preloadVideo.load();
+
+      return preloadVideo;
+    }).filter(Boolean);
 
     return () => {
-      if (preloadVideo) {
-        preloadVideo.remove();
-      }
+      preloadElements.forEach(video => {
+        if (video) {
+          video.remove();
+        }
+      });
     };
   }, [videoSrc, shouldPreload]);
 }

@@ -48,9 +48,7 @@ function VideoComponent({ video, onColorExtracted, isClickable, isVisible = true
     }
   }, [video]);
 
-  useEffect(() => {
-    useVideoPreload(thumbnailUrl, isVisible);
-  }, [thumbnailUrl, isVisible]);
+  useVideoPreload(thumbnailUrl, isVisible);
 
   const handleClick = () => {
     if (!isClickable) return;

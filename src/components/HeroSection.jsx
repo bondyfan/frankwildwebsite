@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import VideoCarousel from './VideoCarousel';
 import { motion, AnimatePresence } from 'framer-motion';
 import { videos } from '../constants/constants';
+import { useVideoPreload } from '../hooks/useVideoPreload';
 
 // HeroSection component: displays a hero section with a video carousel
 function HeroSection() {
@@ -22,6 +23,8 @@ function HeroSection() {
   };
   const backgroundUrl = videoMap[currentVideo] || (videoId ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg` : null);
   const isVideo = backgroundUrl?.toLowerCase().endsWith('.mp4');
+
+  useVideoPreload(videoMap);
 
   return (
     // Main section container with animation
