@@ -10,11 +10,11 @@ function VideoComponent({ video, onColorExtracted, isClickable, isVisible = true
   const [thumbnailUrl, setThumbnailUrl] = useState('');
   const [thumbnailLoaded, setThumbnailLoaded] = useState(false);
   const [videoError, setVideoError] = useState(false);
-  const { views: viewsData, uploadDates } = useYoutubeData();
+  const { views: viewsData = {}, uploadDates = {} } = useYoutubeData() || {};
   const views = video.title ? (
     video.title === "Hafo" 
-      ? (viewsData["Hafo"] || 0) + (viewsData["Hafo (alternate)"] || 0)
-      : viewsData[video.title]
+      ? ((viewsData?.["Hafo"] || 0) + (viewsData?.["Hafo (alternate)"] || 0))
+      : (viewsData?.[video.title] || 0)
   ) : undefined;
 
   useEffect(() => {

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { VIDEO_IDS } from '../constants/constants';
+import { VIDEO_IDS, VIDEO_YEARS } from '../constants/constants';
 import { YOUTUBE_API_KEY } from '../config';
 
 // Global cache for YouTube data
@@ -14,7 +14,15 @@ const notifySubscribers = (data) => {
 
 async function fetchYouTubeData() {
   if (!YOUTUBE_API_KEY) {
-    throw new Error('YouTube API key is not configured');
+    console.warn('YouTube API key is not configured, using fallback data');
+    // Return fallback data with 0 views
+    const fallbackData = {
+      views: Object.keys(VIDEO_IDS).reduce((acc, key) => ({ ...acc, [key]: 0 }), {}),
+      uploadDates: VIDEO_YEARS
+    };
+    globalCache = fallbackData;
+    notifySubscribers(fallbackData);
+    return fallbackData;
   }
 
   const url = 'https://www.googleapis.com/youtube/v3/videos';
@@ -25,39 +33,53 @@ async function fetchYouTubeData() {
     videoIds
   });
 
-  const response = await axios.get(url, {
-    params: {
-      part: 'statistics,snippet',
-      id: videoIds,
-      key: YOUTUBE_API_KEY
+  try {
+    const response = await axios.get(url, {
+      params: {
+        part: 'statistics,snippet',
+        id: videoIds,
+        key: YOUTUBE_API_KEY
+      }
+    });
+
+    console.log('✅ YouTube API response received', {
+      timestamp: new Date().toISOString(),
+      status: response.status,
+      itemsCount: response?.data?.items?.length || 0
+    });
+
+    if (!response.data || !response.data.items) {
+      throw new Error('Invalid response from YouTube API');
     }
-  });
 
-  console.log('✅ YouTube API response received', {
-    timestamp: new Date().toISOString(),
-    status: response.status,
-    itemsCount: response?.data?.items?.length || 0
-  });
+    // Process the response
+    const processedData = {
+      views: {},
+      uploadDates: {}
+    };
 
-  if (!response.data || !response.data.items) {
-    throw new Error('Invalid response from YouTube API');
+    response.data.items.forEach(item => {
+      const title = Object.keys(VIDEO_IDS).find(key => VIDEO_IDS[key] === item.id);
+      if (title) {
+        processedData.views[title] = parseInt(item.statistics.viewCount, 10);
+        processedData.uploadDates[title] = VIDEO_YEARS[title];
+      }
+    });
+
+    globalCache = processedData;
+    notifySubscribers(processedData);
+    return processedData;
+  } catch (error) {
+    console.error('Error fetching YouTube data:', error);
+    // Return fallback data with 0 views on error
+    const fallbackData = {
+      views: Object.keys(VIDEO_IDS).reduce((acc, key) => ({ ...acc, [key]: 0 }), {}),
+      uploadDates: VIDEO_YEARS
+    };
+    globalCache = fallbackData;
+    notifySubscribers(fallbackData);
+    return fallbackData;
   }
-
-  // Process the response
-  const processedData = {
-    views: {},
-    uploadDates: {}
-  };
-
-  response.data.items.forEach(item => {
-    const title = Object.entries(VIDEO_IDS).find(([_, id]) => id === item.id)?.[0];
-    if (title) {
-      processedData.views[title] = parseInt(item.statistics.viewCount, 10);
-      processedData.uploadDates[title] = new Date(item.snippet.publishedAt).getFullYear().toString();
-    }
-  });
-
-  return processedData;
 }
 
 export function useYoutubeData() {
