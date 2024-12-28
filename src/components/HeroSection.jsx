@@ -1,5 +1,5 @@
 // Import necessary dependencies
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import VideoCarousel from './VideoCarousel';
 import { motion, AnimatePresence } from 'framer-motion';
 import { videos } from '../constants/constants';
@@ -7,10 +7,8 @@ import { useVideoPreload } from '../hooks/useVideoPreload';
 
 // HeroSection component: displays a hero section with a video carousel
 function HeroSection() {
-  // State to track the currently selected video, defaults to the first video title
-  const [currentVideo, setCurrentVideo] = useState(videos[0].title);
-  // State to track whether the video is loaded
-  const [isVideoLoaded, setIsVideoLoaded] = useState(false);
+  // State to track the currently selected video, defaults to "Hafo"
+  const [currentVideo, setCurrentVideo] = useState("Hafo");
 
   // Find the current video object to get its video ID
   const activeVideo = videos.find(video => video.title === currentVideo);
@@ -23,30 +21,10 @@ function HeroSection() {
     "HOT": "/carousel/optimized/hot.mp4",
     "Zabil Jsem Svou Holku": "/carousel/optimized/zabil.mp4"
   };
-  
-  // YouTube thumbnail fallback
-  const youtubeThumb = videoId ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg` : null;
-  // Background URL, prioritizing video map and falling back to YouTube thumbnail
-  const backgroundUrl = videoMap[currentVideo] || youtubeThumb;
-  // Check if the background URL is a video
+  const backgroundUrl = videoMap[currentVideo] || (videoId ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg` : null);
   const isVideo = backgroundUrl?.toLowerCase().endsWith('.mp4');
 
   useVideoPreload(videoMap);
-
-  // Handle video load event
-  const handleVideoLoad = () => {
-    setIsVideoLoaded(true);
-  };
-
-  // Handle video error event
-  const handleVideoError = () => {
-    setIsVideoLoaded(false);
-  };
-
-  // Reset video loaded state when the current video changes
-  useEffect(() => {
-    setIsVideoLoaded(false);
-  }, [currentVideo]);
 
   return (
     // Main section container with animation
@@ -57,36 +35,59 @@ function HeroSection() {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
     >
-      {/* Background video/image */}
-      <div className="absolute inset-0 w-full h-full overflow-hidden">
-        {!isVideoLoaded && youtubeThumb && (
-          <img
-            src={youtubeThumb}
-            alt={currentVideo}
-            className="absolute inset-0 w-full h-full object-cover"
-            style={{ filter: 'blur(5px)' }}
-          />
+      {/* Blurred background */}
+      <AnimatePresence initial={false}>
+        {backgroundUrl && (
+          isVideo ? (
+            <motion.div 
+              key={backgroundUrl}
+              className="absolute inset-0 -inset-x-32 overflow-hidden"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.3 }}
+              exit={{ opacity: 0 }}
+              transition={{ 
+                duration: 0.3,
+                ease: "easeInOut"
+              }}
+            >
+              <video
+                src={backgroundUrl}
+                className="absolute inset-0 w-full h-full object-cover"
+                autoPlay
+                loop
+                muted
+                playsInline
+                preload="auto"
+                style={{
+                  filter: 'blur(24px)',
+                  transform: 'scale(1.2)',
+                  willChange: 'opacity',
+                }}
+              />
+            </motion.div>
+          ) : (
+            <motion.div 
+              key={backgroundUrl}
+              className="absolute inset-0 -inset-x-32"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.3 }}
+              exit={{ opacity: 0 }}
+              transition={{ 
+                duration: 0.3,
+                ease: "easeInOut"
+              }}
+              style={{
+                backgroundImage: `url(${backgroundUrl})`,
+                backgroundPosition: 'center',
+                backgroundSize: 'cover',
+                filter: 'blur(24px)',
+                transform: 'scale(1.2)',
+                willChange: 'opacity',
+              }}
+            />
+          )
         )}
-        {isVideo ? (
-          <video
-            key={backgroundUrl}
-            src={backgroundUrl}
-            className={`w-full h-full object-cover transition-opacity duration-300 ${isVideoLoaded ? 'opacity-100' : 'opacity-0'}`}
-            autoPlay
-            loop
-            muted
-            playsInline
-            onLoadedData={handleVideoLoad}
-            onError={handleVideoError}
-          />
-        ) : (
-          <img
-            src={backgroundUrl}
-            alt={currentVideo}
-            className="w-full h-full object-cover"
-          />
-        )}
-      </div>
+      </AnimatePresence>
       {/* Gradient overlay */}
       <div 
         className="absolute inset-0 pointer-events-none"

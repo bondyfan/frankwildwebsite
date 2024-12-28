@@ -11,7 +11,6 @@ function VideoComponent({ video, onColorExtracted, isClickable, isVisible = true
   const [thumbnailUrl, setThumbnailUrl] = useState('');
   const [thumbnailLoaded, setThumbnailLoaded] = useState(false);
   const [videoError, setVideoError] = useState(false);
-  const [isVideoLoaded, setIsVideoLoaded] = useState(false);
   const { views: viewsData = {}, uploadDates = {} } = useYoutubeData() || {};
   const views = video.title ? (
     video.title === "Hafo" 
@@ -19,10 +18,8 @@ function VideoComponent({ video, onColorExtracted, isClickable, isVisible = true
       : (viewsData?.[video.title] || 0)
   ) : undefined;
 
-  const videoId = video.videoId || (video.videoIds && video.videoIds[0]);
-  const youtubeThumb = videoId ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg` : null;
-
   useEffect(() => {
+    const videoId = video.videoId || (video.videoIds && video.videoIds[0]);
     if (videoId) {
       // Map video titles to their corresponding MP4 files
       const videoMap = {
@@ -35,26 +32,23 @@ function VideoComponent({ video, onColorExtracted, isClickable, isVisible = true
       };
       
       // Use MP4 if available, otherwise fallback to YouTube thumbnail
-      const mp4Url = video.title && videoMap[video.title];
+      const mp4Url = videoMap[video.title];
       if (mp4Url) {
+        setVideoError(false);
         setThumbnailUrl(mp4Url);
-        setIsVideoLoaded(false); // Reset loading state when video changes
+        setThumbnailLoaded(true);
       } else {
-        setThumbnailUrl(youtubeThumb);
+        const url = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+        setThumbnailUrl(url);
+        // Create a hidden image to trigger onLoad immediately if cached
+        const img = new Image();
+        img.onload = () => setThumbnailLoaded(true);
+        img.src = url;
       }
     }
-  }, [video, videoId, youtubeThumb]);
+  }, [video]);
 
   useVideoPreload(thumbnailUrl, isVisible);
-
-  const handleVideoLoad = () => {
-    setIsVideoLoaded(true);
-  };
-
-  const handleVideoError = () => {
-    setVideoError(true);
-    setThumbnailUrl(youtubeThumb);
-  };
 
   const handleClick = () => {
     if (!isClickable) return;
@@ -89,7 +83,7 @@ function VideoComponent({ video, onColorExtracted, isClickable, isVisible = true
     >
       <div onClick={handleClick} className={`cursor-pointer w-[75vw] md:w-[50vw] lg:w-[32vw] ${isClickable ? 'hover:opacity-90' : ''}`}>
         <div className="rounded-2xl overflow-hidden shadow-xl bg-white border border-gray-100 transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl">
-          <div className="relative w-full h-full overflow-hidden rounded-lg">
+          <div className="relative w-full aspect-video bg-black overflow-hidden">
             {/* Blurred background video */}
             {thumbnailUrl && thumbnailUrl.toLowerCase().endsWith('.mp4') && (
               <div className="absolute inset-0 -inset-x-32 overflow-hidden">
@@ -115,25 +109,23 @@ function VideoComponent({ video, onColorExtracted, isClickable, isVisible = true
             {thumbnailUrl && (
               thumbnailUrl.toLowerCase().endsWith('.mp4') ? (
                 <>
-                  {!isVideoLoaded && youtubeThumb && (
-                    <img
-                      src={youtubeThumb}
-                      alt={video.title}
-                      className="absolute inset-0 w-full h-full object-cover"
-                      style={{ filter: 'blur(5px)' }}
-                    />
-                  )}
                   <video
                     key={thumbnailUrl}
                     src={thumbnailUrl}
-                    className={`absolute inset-0 w-full h-full object-cover ${video.title === "Hafo" ? "scale-110" : ""} transition-opacity duration-300 ${isVideoLoaded ? 'opacity-100' : 'opacity-0'}`}
+                    className={`absolute inset-0 w-full h-full object-cover ${video.title === "Hafo" ? "scale-110" : ""}`}
                     autoPlay
                     loop
                     muted
                     playsInline
                     preload="auto"
-                    onLoadedData={handleVideoLoad}
-                    onError={handleVideoError}
+                    onLoadedData={() => {
+                      setThumbnailLoaded(true);
+                      setVideoError(false);
+                    }}
+                    onError={(e) => {
+                      console.error('Video loading error:', e);
+                      setVideoError(true);
+                    }}
                   />
                   {videoError && (
                     <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
