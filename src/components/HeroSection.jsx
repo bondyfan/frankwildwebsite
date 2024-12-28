@@ -12,7 +12,16 @@ function HeroSection() {
   // Find the current video object to get its video ID
   const activeVideo = videos.find(video => video.title === currentVideo);
   const videoId = activeVideo?.videoIds ? activeVideo.videoIds[0] : activeVideo?.videoId;
-  const thumbnailUrl = videoId ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg` : null;
+  const videoMap = {
+    "Vezmu Si Tě Do Pekla": "/carousel/VSTDP.mp4",
+    "Hafo": "/carousel/hafo.mp4",
+    "Bunny Hop": "/carousel/bunnyhop.mp4",
+    "Upír Dex": "/carousel/upirdex.mp4",
+    "HOT": "/carousel/hot.mp4",
+    "Zabil Jsem Svou Holku": "/carousel/zabil.mp4"
+  };
+  const backgroundUrl = videoMap[currentVideo] || (videoId ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg` : null);
+  const isVideo = backgroundUrl?.toLowerCase().endsWith('.mp4');
 
   return (
     // Main section container with animation
@@ -23,28 +32,57 @@ function HeroSection() {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
     >
-      {/* Blurred background thumbnail */}
+      {/* Blurred background */}
       <AnimatePresence initial={false}>
-        {thumbnailUrl && (
-          <motion.div 
-            key={thumbnailUrl}
-            className="absolute inset-0 -inset-x-32"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 0.3 }}
-            exit={{ opacity: 0 }}
-            transition={{ 
-              duration: 0.3,
-              ease: "easeInOut"
-            }}
-            style={{
-              backgroundImage: `url(${thumbnailUrl})`,
-              backgroundPosition: 'center',
-              backgroundSize: 'cover',
-              filter: 'blur(24px)',
-              transform: 'scale(1.2)',
-              willChange: 'opacity',
-            }}
-          />
+        {backgroundUrl && (
+          isVideo ? (
+            <motion.div 
+              key={backgroundUrl}
+              className="absolute inset-0 -inset-x-32 overflow-hidden"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.3 }}
+              exit={{ opacity: 0 }}
+              transition={{ 
+                duration: 0.3,
+                ease: "easeInOut"
+              }}
+            >
+              <video
+                src={backgroundUrl}
+                className="absolute inset-0 w-full h-full object-cover"
+                autoPlay
+                loop
+                muted
+                playsInline
+                preload="auto"
+                style={{
+                  filter: 'blur(24px)',
+                  transform: 'scale(1.2)',
+                  willChange: 'opacity',
+                }}
+              />
+            </motion.div>
+          ) : (
+            <motion.div 
+              key={backgroundUrl}
+              className="absolute inset-0 -inset-x-32"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.3 }}
+              exit={{ opacity: 0 }}
+              transition={{ 
+                duration: 0.3,
+                ease: "easeInOut"
+              }}
+              style={{
+                backgroundImage: `url(${backgroundUrl})`,
+                backgroundPosition: 'center',
+                backgroundSize: 'cover',
+                filter: 'blur(24px)',
+                transform: 'scale(1.2)',
+                willChange: 'opacity',
+              }}
+            />
+          )
         )}
       </AnimatePresence>
       {/* Gradient overlay */}

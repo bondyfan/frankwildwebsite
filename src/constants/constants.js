@@ -7,13 +7,23 @@ import extraImg from '../assets/media/extra.jpg';
 
 // YouTube Video IDs
 export const VIDEO_IDS = {
-  "Hafo": "IX3j84DJAGo",
-  "Vezmu Si Tě Do Pekla": "wup3ChHramo",
-  "Upír Dex": "TO1BHE8gFTE",
-  "Hafo (alternate)": "i4NOEx2-6xk",
-  "Zabil Jsem Svou Holku": "WVzjgCNCyaY",
-  "Bunny Hop": "3rLKWDAlOTE",
-  "HOT": "bFbH9hg2yKg"
+  'Hafo': 'IX3j84DJAGo',
+  'Vezmu Si Tě Do Pekla': 'wup3ChHramo',
+  'Upír Dex': 'TO1BHE8gFTE',
+  'Hafo (alternate)': 'i4NOEx2-6xk',
+  'Zabil Jsem Svou Holku': 'WVzjgCNCyaY',
+  'Bunny Hop': '3rLKWDAlOTE',
+  'HOT': 'bFbH9hg2yKg'
+};
+
+export const VIDEO_YEARS = {
+  'Hafo': '2023',
+  'Vezmu Si Tě Do Pekla': '2023',
+  'Upír Dex': '2023',
+  'Hafo (alternate)': '2023',
+  'Zabil Jsem Svou Holku': '2022',
+  'Bunny Hop': '2022',
+  'HOT': '2022'
 };
 
 // Blog Posts

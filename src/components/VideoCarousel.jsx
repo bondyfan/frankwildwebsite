@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion';
 import VideoComponent from './VideoComponent';
 import { useYoutubeData } from '../hooks/useYoutubeData';
+import styles from './VideoCarousel.module.css';
 
 // Debounce helper function
 const debounce = (func, wait) => {
@@ -12,6 +13,22 @@ const debounce = (func, wait) => {
   };
 };
 
+// Helper function to get thumbnail URL
+const getThumbnailUrl = (video) => {
+  const videoId = video.videoId || (video.videoIds && video.videoIds[0]);
+  return videoId ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg` : null;
+};
+
+// Preload images helper
+const preloadImage = (url) => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = resolve;
+    img.onerror = reject;
+    img.src = url;
+  });
+};
+
 function VideoCarousel({ videos: initialVideos, onSlideChange }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [direction, setDirection] = useState(0);
@@ -19,6 +36,7 @@ function VideoCarousel({ videos: initialVideos, onSlideChange }) {
   const [backgroundColor, setBackgroundColor] = useState('rgb(243, 244, 246)');
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 896);
   const [visibleIndex, setVisibleIndex] = useState(0);
+  const [imagesPreloaded, setImagesPreloaded] = useState(false);
   const carouselRef = useRef(null);
   const scrollingRef = useRef(false);
   const viewsData = useYoutubeData();
@@ -104,6 +122,23 @@ function VideoCarousel({ videos: initialVideos, onSlideChange }) {
     }
   }, [isMobile, sortedVideos, onSlideChange, visibleIndex]);
 
+  // Preload images effect
+  useEffect(() => {
+    const preloadImages = async () => {
+      try {
+        const imageUrls = sortedVideos.map(video => getThumbnailUrl(video)).filter(Boolean);
+        await Promise.all(imageUrls.map(url => preloadImage(url)));
+        setImagesPreloaded(true);
+      } catch (error) {
+        console.error('Error preloading images:', error);
+        // Still set as preloaded even if some fail to avoid blocking the UI
+        setImagesPreloaded(true);
+      }
+    };
+
+    preloadImages();
+  }, [sortedVideos]);
+
   if (sortedVideos.length === 0) return null;
 
   if (isMobile) {
@@ -112,7 +147,7 @@ function VideoCarousel({ videos: initialVideos, onSlideChange }) {
       <div className="relative w-screen -mx-6">
         <div
           ref={carouselRef}
-          className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide mb-8 -mx-4 md:mx-0"
+          className={`flex overflow-x-auto snap-x snap-mandatory ${styles.scrollbarHide} mb-8 -mx-4 md:mx-0`}
           style={{
             scrollBehavior: 'smooth',
             WebkitOverflowScrolling: 'touch',
@@ -162,16 +197,6 @@ function VideoCarousel({ videos: initialVideos, onSlideChange }) {
             />
           ))}
         </div>
-
-        <style jsx global>{`
-          .scrollbar-hide {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-          }
-          .scrollbar-hide::-webkit-scrollbar {
-            display: none;
-          }
-        `}</style>
       </div>
     );
     // =================== MOBILE CAROUSEL END ===================

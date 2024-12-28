@@ -20,12 +20,23 @@ async function fetchYouTubeData() {
   const url = 'https://www.googleapis.com/youtube/v3/videos';
   const videoIds = Object.values(VIDEO_IDS).join(',');
   
+  console.log('🎥 Fetching YouTube data...', {
+    timestamp: new Date().toISOString(),
+    videoIds
+  });
+
   const response = await axios.get(url, {
     params: {
-      part: 'statistics',
+      part: 'statistics,snippet',
       id: videoIds,
       key: YOUTUBE_API_KEY
     }
+  });
+
+  console.log('✅ YouTube API response received', {
+    timestamp: new Date().toISOString(),
+    status: response.status,
+    itemsCount: response?.data?.items?.length || 0
   });
 
   if (!response.data || !response.data.items) {
@@ -33,33 +44,38 @@ async function fetchYouTubeData() {
   }
 
   // Process the response
-  const viewsData = {};
+  const processedData = {
+    views: {},
+    uploadDates: {}
+  };
+
   response.data.items.forEach(item => {
     const title = Object.entries(VIDEO_IDS).find(([_, id]) => id === item.id)?.[0];
     if (title) {
-      viewsData[title] = parseInt(item.statistics.viewCount, 10);
+      processedData.views[title] = parseInt(item.statistics.viewCount, 10);
+      processedData.uploadDates[title] = new Date(item.snippet.publishedAt).getFullYear().toString();
     }
   });
 
-  return viewsData;
+  return processedData;
 }
 
 export function useYoutubeData() {
-  const [views, setViews] = useState(globalCache || {});
+  const [data, setData] = useState(globalCache || { views: {}, uploadDates: {} });
   const [loading, setLoading] = useState(!globalCache);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     // If we already have cached data, use it
     if (globalCache) {
-      setViews(globalCache);
+      setData(globalCache);
       setLoading(false);
       return;
     }
 
     // Subscribe to updates
-    const handleUpdate = (data) => {
-      setViews(data);
+    const handleUpdate = (newData) => {
+      setData(newData);
       setLoading(false);
       setError(null);
     };
@@ -69,9 +85,9 @@ export function useYoutubeData() {
     if (!isFetching) {
       isFetching = true;
       fetchYouTubeData()
-        .then(data => {
-          globalCache = data;
-          notifySubscribers(data);
+        .then(newData => {
+          globalCache = newData;
+          notifySubscribers(newData);
         })
         .catch(err => {
           console.error('Error fetching YouTube stats:', err);
@@ -89,5 +105,10 @@ export function useYoutubeData() {
     };
   }, []);
 
-  return { views, loading, error };
+  return { 
+    views: data.views, 
+    uploadDates: data.uploadDates,
+    loading, 
+    error 
+  };
 }
