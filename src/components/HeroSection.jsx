@@ -13,12 +13,12 @@ function HeroSection() {
   const activeVideo = videos.find(video => video.title === currentVideo);
   const videoId = activeVideo?.videoIds ? activeVideo.videoIds[0] : activeVideo?.videoId;
   const videoMap = {
-    "Vezmu Si Tě Do Pekla": "/carousel/VSTDP.mp4",
-    "Hafo": "/carousel/hafo.mp4",
-    "Bunny Hop": "/carousel/bunnyhop.mp4",
-    "Upír Dex": "/carousel/upirdex.mp4",
-    "HOT": "/carousel/hot.mp4",
-    "Zabil Jsem Svou Holku": "/carousel/zabil.mp4"
+    "Vezmu Si Tě Do Pekla": "/carousel/optimized/VSTDP.mp4",
+    "Hafo": "/carousel/optimized/hafo.mp4",
+    "Bunny Hop": "/carousel/optimized/bunnyhop.mp4",
+    "Upír Dex": "/carousel/optimized/upirdex.mp4",
+    "HOT": "/carousel/optimized/hot.mp4",
+    "Zabil Jsem Svou Holku": "/carousel/optimized/zabil.mp4"
   };
   const backgroundUrl = videoMap[currentVideo] || (videoId ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg` : null);
   const isVideo = backgroundUrl?.toLowerCase().endsWith('.mp4');

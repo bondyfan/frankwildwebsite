@@ -4,6 +4,7 @@ import ColorThief from 'colorthief';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatViews } from '../utils/formatters';
 import { useYoutubeData } from '../hooks/useYoutubeData';
+import { useVideoPreload } from '../hooks/useVideoPreload';
 import { API_URL } from '../config';
 
 function VideoComponent({ video, onColorExtracted, isClickable, isVisible = true }) {
@@ -22,12 +23,12 @@ function VideoComponent({ video, onColorExtracted, isClickable, isVisible = true
     if (videoId) {
       // Map video titles to their corresponding MP4 files
       const videoMap = {
-        "Vezmu Si Tě Do Pekla": "/carousel/VSTDP.mp4",
-        "Hafo": "/carousel/hafo.mp4",
-        "Bunny Hop": "/carousel/bunnyhop.mp4",
-        "Upír Dex": "/carousel/upirdex.mp4",
-        "HOT": "/carousel/hot.mp4",
-        "Zabil Jsem Svou Holku": "/carousel/zabil.mp4"
+        "Vezmu Si Tě Do Pekla": "/carousel/optimized/VSTDP.mp4",
+        "Hafo": "/carousel/optimized/hafo.mp4",
+        "Bunny Hop": "/carousel/optimized/bunnyhop.mp4",
+        "Upír Dex": "/carousel/optimized/upirdex.mp4",
+        "HOT": "/carousel/optimized/hot.mp4",
+        "Zabil Jsem Svou Holku": "/carousel/optimized/zabil.mp4"
       };
       
       // Use MP4 if available, otherwise fallback to YouTube thumbnail
@@ -46,6 +47,10 @@ function VideoComponent({ video, onColorExtracted, isClickable, isVisible = true
       }
     }
   }, [video]);
+
+  useEffect(() => {
+    useVideoPreload(thumbnailUrl, isVisible);
+  }, [thumbnailUrl, isVisible]);
 
   const handleClick = () => {
     if (!isClickable) return;
