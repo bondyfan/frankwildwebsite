@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import axios from 'axios';
 import ColorThief from 'colorthief';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -9,111 +9,99 @@ import { API_URL } from '../config';
 
 function VideoComponent({ video, onColorExtracted, isClickable = true, isVisible = true, shouldPlay = true, currentIndex, index }) {
   const [thumbnailUrl, setThumbnailUrl] = useState('');
-  const [thumbnailLoaded, setThumbnailLoaded] = useState(false);
-  const [videoError, setVideoError] = useState(false);
   const [firstFrame, setFirstFrame] = useState('');
+  const [isVideoReady, setIsVideoReady] = useState(false);
   const bgVideoRef = useRef(null);
-  const canvasRef = useRef(null);
-  const loadingTimeoutRef = useRef(null);
+  const preloadVideoRef = useRef(null);
   const { views: viewsData = {} } = useYoutubeData() || {};
+
+  const videoMap = useMemo(() => ({
+    "Vezmu Si Tě Do Pekla": "/carousel/optimized/VSTDP.mp4",
+    "Hafo": "/carousel/optimized/hafo.mp4",
+    "Bunny Hop": "/carousel/optimized/bunnyhop.mp4",
+    "Upír Dex": "/carousel/optimized/upirdex.mp4",
+    "HOT": "/carousel/optimized/hot.mp4",
+    "Zabil Jsem Svou Holku": "/carousel/optimized/zabil.mp4"
+  }), []);
+
+  // Load video and extract first frame
+  useEffect(() => {
+    const mp4Url = videoMap[video.title];
+    if (!mp4Url) return;
+
+    setThumbnailUrl(mp4Url);
+
+    const preloadVideo = document.createElement('video');
+    preloadVideo.muted = true;
+    preloadVideo.playsInline = true;
+    preloadVideo.preload = 'auto';
+    preloadVideoRef.current = preloadVideo;
+    preloadVideo.src = mp4Url;
+
+    const extractFrame = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = preloadVideo.videoWidth;
+      canvas.height = preloadVideo.videoHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(preloadVideo, 0, 0, canvas.width, canvas.height);
+      const frameDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+      setFirstFrame(frameDataUrl);
+    };
+
+    const handleCanPlay = () => {
+      extractFrame();
+      setIsVideoReady(true);
+      preloadVideo.removeEventListener('canplay', handleCanPlay);
+    };
+
+    preloadVideo.addEventListener('canplay', handleCanPlay);
+    preloadVideo.load();
+
+    return () => {
+      if (preloadVideoRef.current) {
+        preloadVideoRef.current.removeEventListener('canplay', handleCanPlay);
+        preloadVideoRef.current.src = '';
+        preloadVideoRef.current.remove();
+        preloadVideoRef.current = null;
+      }
+    };
+  }, [video.title, videoMap]);
+
+  // Handle video playback
+  useEffect(() => {
+    if (bgVideoRef.current && isVideoReady) {
+      if (shouldPlay && isVisible) {
+        bgVideoRef.current.play().catch(console.error);
+      } else {
+        bgVideoRef.current.pause();
+        bgVideoRef.current.currentTime = 0;
+      }
+    }
+  }, [shouldPlay, isVisible, isVideoReady]);
+
+  // Extract color from first frame
+  useEffect(() => {
+    if (firstFrame && onColorExtracted) {
+      const img = document.createElement('img');
+      img.crossOrigin = 'Anonymous';
+      img.src = firstFrame;
+      img.onload = () => {
+        const colorThief = new ColorThief();
+        try {
+          const color = colorThief.getColor(img);
+          onColorExtracted(`rgb(${color[0]}, ${color[1]}, ${color[2]})`);
+        } catch (error) {
+          console.error('Error extracting color:', error);
+        }
+      };
+    }
+  }, [firstFrame, onColorExtracted]);
+
   const views = video.title ? (
     video.title === "Hafo" 
       ? ((viewsData?.["Hafo"] || 0) + (viewsData?.["Hafo (alternate)"] || 0))
       : (viewsData?.[video.title] || 0)
   ) : undefined;
-
-  useEffect(() => {
-    const videoId = video.videoId || (video.videoIds && video.videoIds[0]);
-    if (videoId) {
-      const videoMap = {
-        "Vezmu Si Tě Do Pekla": "/carousel/optimized/VSTDP.mp4",
-        "Hafo": "/carousel/optimized/hafo.mp4",
-        "Bunny Hop": "/carousel/optimized/bunnyhop.mp4",
-        "Upír Dex": "/carousel/optimized/upirdex.mp4",
-        "HOT": "/carousel/optimized/hot.mp4",
-        "Zabil Jsem Svou Holku": "/carousel/optimized/zabil.mp4"
-      };
-      
-      const mp4Url = videoMap[video.title];
-      if (mp4Url) {
-        if (isVisible || Math.abs(currentIndex - index) <= 1) {
-          setVideoError(false);
-          setThumbnailUrl(mp4Url);
-          setThumbnailLoaded(true);
-        }
-      } else {
-        const url = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
-        setThumbnailUrl(url);
-        const img = new Image();
-        img.onload = () => setThumbnailLoaded(true);
-        img.src = url;
-      }
-    }
-  }, [video, isVisible, currentIndex, index]);
-
-  useEffect(() => {
-    if (thumbnailUrl && thumbnailUrl.toLowerCase().endsWith('.mp4') && !firstFrame) {
-      const tempVideo = document.createElement('video');
-      tempVideo.src = thumbnailUrl;
-      tempVideo.muted = true;
-      tempVideo.preload = 'metadata';
-
-      const handleLoadedMetadata = () => {
-        tempVideo.currentTime = 0;
-      };
-
-      const handleSeeked = () => {
-        if (!canvasRef.current) {
-          canvasRef.current = document.createElement('canvas');
-        }
-        
-        canvasRef.current.width = tempVideo.videoWidth;
-        canvasRef.current.height = tempVideo.videoHeight;
-        
-        const ctx = canvasRef.current.getContext('2d');
-        ctx.drawImage(tempVideo, 0, 0, canvasRef.current.width, canvasRef.current.height);
-        
-        const frameDataUrl = canvasRef.current.toDataURL('image/jpeg', 0.8);
-        setFirstFrame(frameDataUrl);
-        
-        tempVideo.removeEventListener('loadedmetadata', handleLoadedMetadata);
-        tempVideo.removeEventListener('seeked', handleSeeked);
-        tempVideo.remove();
-      };
-
-      tempVideo.addEventListener('loadedmetadata', handleLoadedMetadata);
-      tempVideo.addEventListener('seeked', handleSeeked);
-      
-      loadingTimeoutRef.current = setTimeout(() => {
-        tempVideo.removeEventListener('loadedmetadata', handleLoadedMetadata);
-        tempVideo.removeEventListener('seeked', handleSeeked);
-        tempVideo.remove();
-      }, 5000);
-
-      return () => {
-        if (loadingTimeoutRef.current) {
-          clearTimeout(loadingTimeoutRef.current);
-        }
-        tempVideo.removeEventListener('loadedmetadata', handleLoadedMetadata);
-        tempVideo.removeEventListener('seeked', handleSeeked);
-        tempVideo.remove();
-      };
-    }
-  }, [thumbnailUrl, firstFrame]);
-
-  useEffect(() => {
-    if (bgVideoRef.current) {
-      if (shouldPlay && isVisible) {
-        bgVideoRef.current.play().catch(console.error);
-      } else {
-        bgVideoRef.current.pause();
-        if (!isVisible) {
-          bgVideoRef.current.currentTime = 0;
-          bgVideoRef.current.src = '';
-        }
-      }
-    }
-  }, [shouldPlay, isVisible]);
 
   const youtubeThumbUrl = video.videoIds 
     ? `https://img.youtube.com/vi/${video.videoIds[0]}/maxresdefault.jpg`
@@ -130,42 +118,27 @@ function VideoComponent({ video, onColorExtracted, isClickable = true, isVisible
     }
   };
 
-  useEffect(() => {
-    if (thumbnailLoaded && thumbnailUrl && !thumbnailUrl.endsWith('.mp4') && onColorExtracted) {
-      const img = document.createElement('img');
-      img.crossOrigin = 'Anonymous';
-      img.src = thumbnailUrl;
-      img.onload = () => {
-        const colorThief = new ColorThief();
-        try {
-          const color = colorThief.getColor(img);
-          onColorExtracted(`rgb(${color[0]}, ${color[1]}, ${color[2]})`);
-        } catch (error) {
-          console.error('Error extracting color:', error);
-        }
-      };
-    }
-  }, [thumbnailLoaded, thumbnailUrl, onColorExtracted]);
-
   return (
-    <motion.div
-      className="flex flex-col items-center"
-    >
+    <motion.div className="flex flex-col items-center">
       <div onClick={handleClick} className={`cursor-pointer w-[75vw] md:w-[50vw] lg:w-[32vw] ${isClickable ? 'hover:opacity-90' : ''}`}>
         <div className="rounded-2xl overflow-hidden shadow-xl transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl">
           <div className="relative w-full aspect-video bg-black overflow-hidden">
-            <img 
-              src={firstFrame || (thumbnailUrl && !thumbnailUrl.endsWith('.mp4') ? thumbnailUrl : '')}
-              alt={video.title}
-              className={`absolute inset-0 w-full h-full object-cover ${video.title === "Hafo" ? "scale-110" : ""}`}
-              style={{
-                zIndex: 1,
-                transform: video.title === "Hafo" ? 'scale(1.1)' : 'none',
-              }}
-            />
+            {/* Always show first frame */}
+            {firstFrame && (
+              <img 
+                src={firstFrame}
+                alt={video.title}
+                className={`absolute inset-0 w-full h-full object-cover ${video.title === "Hafo" ? "scale-110" : ""}`}
+                style={{
+                  zIndex: 1,
+                  transform: video.title === "Hafo" ? 'scale(1.1)' : 'none',
+                }}
+              />
+            )}
             
+            {/* Show video only when ready and visible */}
             <AnimatePresence>
-              {isVisible && thumbnailUrl && thumbnailUrl.toLowerCase().endsWith('.mp4') && (
+              {isVisible && isVideoReady && thumbnailUrl && (
                 <motion.video
                   key="video"
                   ref={bgVideoRef}
@@ -182,17 +155,6 @@ function VideoComponent({ video, onColorExtracted, isClickable = true, isVisible
                   style={{
                     zIndex: 2,
                     transform: video.title === "Hafo" ? 'scale(1.1)' : 'none',
-                  }}
-                  onLoadedData={() => {
-                    setThumbnailLoaded(true);
-                    setVideoError(false);
-                    if (bgVideoRef.current) {
-                      bgVideoRef.current.playbackRate = 1.0;
-                    }
-                  }}
-                  onError={(e) => {
-                    console.error('Video loading error:', e);
-                    setVideoError(true);
                   }}
                 >
                   <source src={thumbnailUrl} type="video/mp4" />
