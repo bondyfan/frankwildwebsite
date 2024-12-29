@@ -7,16 +7,15 @@ import { useYoutubeData } from '../hooks/useYoutubeData';
 import { useVideoPreload } from '../hooks/useVideoPreload';
 import { API_URL } from '../config';
 
-function VideoComponent({ video, onColorExtracted, isClickable = true, isVisible = true, shouldPlay = true }) {
+function VideoComponent({ video, onColorExtracted, isClickable = true, isVisible = true, shouldPlay = true, currentIndex, index }) {
   const [thumbnailUrl, setThumbnailUrl] = useState('');
   const [thumbnailLoaded, setThumbnailLoaded] = useState(false);
   const [videoError, setVideoError] = useState(false);
   const [firstFrame, setFirstFrame] = useState('');
-  const [bgVideoReady, setBgVideoReady] = useState(false);
-  const mainVideoRef = useRef(null);
   const bgVideoRef = useRef(null);
   const canvasRef = useRef(null);
-  const { views: viewsData = {}, uploadDates = {} } = useYoutubeData() || {};
+  const loadingTimeoutRef = useRef(null);
+  const { views: viewsData = {} } = useYoutubeData() || {};
   const views = video.title ? (
     video.title === "Hafo" 
       ? ((viewsData?.["Hafo"] || 0) + (viewsData?.["Hafo (alternate)"] || 0))
@@ -26,7 +25,6 @@ function VideoComponent({ video, onColorExtracted, isClickable = true, isVisible
   useEffect(() => {
     const videoId = video.videoId || (video.videoIds && video.videoIds[0]);
     if (videoId) {
-      // Map video titles to their corresponding MP4 files
       const videoMap = {
         "Vezmu Si Tě Do Pekla": "/carousel/optimized/VSTDP.mp4",
         "Hafo": "/carousel/optimized/hafo.mp4",
@@ -36,62 +34,92 @@ function VideoComponent({ video, onColorExtracted, isClickable = true, isVisible
         "Zabil Jsem Svou Holku": "/carousel/optimized/zabil.mp4"
       };
       
-      // Use MP4 if available, otherwise fallback to YouTube thumbnail
       const mp4Url = videoMap[video.title];
       if (mp4Url) {
-        setVideoError(false);
-        setThumbnailUrl(mp4Url);
-        setThumbnailLoaded(true);
+        if (isVisible || Math.abs(currentIndex - index) <= 1) {
+          setVideoError(false);
+          setThumbnailUrl(mp4Url);
+          setThumbnailLoaded(true);
+        }
       } else {
         const url = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
         setThumbnailUrl(url);
-        // Create a hidden image to trigger onLoad immediately if cached
         const img = new Image();
         img.onload = () => setThumbnailLoaded(true);
         img.src = url;
       }
     }
-  }, [video]);
-
-  useVideoPreload(thumbnailUrl, isVisible);
+  }, [video, isVisible, currentIndex, index]);
 
   useEffect(() => {
-    if (thumbnailUrl && thumbnailUrl.toLowerCase().endsWith('.mp4')) {
+    if (thumbnailUrl && thumbnailUrl.toLowerCase().endsWith('.mp4') && !firstFrame) {
       const tempVideo = document.createElement('video');
       tempVideo.src = thumbnailUrl;
       tempVideo.muted = true;
-      tempVideo.preload = 'auto';
+      tempVideo.preload = 'metadata';
 
-      tempVideo.addEventListener('loadeddata', () => {
-        // Create canvas if it doesn't exist
+      const handleLoadedMetadata = () => {
+        tempVideo.currentTime = 0;
+      };
+
+      const handleSeeked = () => {
         if (!canvasRef.current) {
           canvasRef.current = document.createElement('canvas');
         }
         
-        // Set canvas size to video size
         canvasRef.current.width = tempVideo.videoWidth;
         canvasRef.current.height = tempVideo.videoHeight;
         
-        // Draw the first frame
         const ctx = canvasRef.current.getContext('2d');
         ctx.drawImage(tempVideo, 0, 0, canvasRef.current.width, canvasRef.current.height);
         
-        // Convert to data URL
-        const frameDataUrl = canvasRef.current.toDataURL('image/jpeg', 0.9);
+        const frameDataUrl = canvasRef.current.toDataURL('image/jpeg', 0.8);
         setFirstFrame(frameDataUrl);
         
-        // Clean up
+        tempVideo.removeEventListener('loadedmetadata', handleLoadedMetadata);
+        tempVideo.removeEventListener('seeked', handleSeeked);
         tempVideo.remove();
-      }, { once: true });
+      };
 
-      // Start loading the video
-      tempVideo.load();
+      tempVideo.addEventListener('loadedmetadata', handleLoadedMetadata);
+      tempVideo.addEventListener('seeked', handleSeeked);
+      
+      loadingTimeoutRef.current = setTimeout(() => {
+        tempVideo.removeEventListener('loadedmetadata', handleLoadedMetadata);
+        tempVideo.removeEventListener('seeked', handleSeeked);
+        tempVideo.remove();
+      }, 5000);
 
       return () => {
+        if (loadingTimeoutRef.current) {
+          clearTimeout(loadingTimeoutRef.current);
+        }
+        tempVideo.removeEventListener('loadedmetadata', handleLoadedMetadata);
+        tempVideo.removeEventListener('seeked', handleSeeked);
         tempVideo.remove();
       };
     }
-  }, [thumbnailUrl]);
+  }, [thumbnailUrl, firstFrame]);
+
+  useEffect(() => {
+    if (bgVideoRef.current) {
+      if (shouldPlay && isVisible) {
+        bgVideoRef.current.play().catch(console.error);
+      } else {
+        bgVideoRef.current.pause();
+        if (!isVisible) {
+          bgVideoRef.current.currentTime = 0;
+          bgVideoRef.current.src = '';
+        }
+      }
+    }
+  }, [shouldPlay, isVisible]);
+
+  const youtubeThumbUrl = video.videoIds 
+    ? `https://img.youtube.com/vi/${video.videoIds[0]}/maxresdefault.jpg`
+    : video.videoId 
+      ? `https://img.youtube.com/vi/${video.videoId}/maxresdefault.jpg`
+      : null;
 
   const handleClick = () => {
     if (!isClickable) return;
@@ -119,23 +147,6 @@ function VideoComponent({ video, onColorExtracted, isClickable = true, isVisible
     }
   }, [thumbnailLoaded, thumbnailUrl, onColorExtracted]);
 
-  useEffect(() => {
-    if (bgVideoRef.current) {
-      if (shouldPlay) {
-        bgVideoRef.current.play().catch(console.error);
-      } else {
-        bgVideoRef.current.pause();
-        bgVideoRef.current.currentTime = 0;
-      }
-    }
-  }, [shouldPlay]);
-
-  const youtubeThumbUrl = video.videoIds 
-    ? `https://img.youtube.com/vi/${video.videoIds[0]}/maxresdefault.jpg`
-    : video.videoId 
-      ? `https://img.youtube.com/vi/${video.videoId}/maxresdefault.jpg`
-      : null;
-
   return (
     <motion.div
       className="flex flex-col items-center"
@@ -143,72 +154,51 @@ function VideoComponent({ video, onColorExtracted, isClickable = true, isVisible
       <div onClick={handleClick} className={`cursor-pointer w-[75vw] md:w-[50vw] lg:w-[32vw] ${isClickable ? 'hover:opacity-90' : ''}`}>
         <div className="rounded-2xl overflow-hidden shadow-xl transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl">
           <div className="relative w-full aspect-video bg-black overflow-hidden">
-            {thumbnailUrl && thumbnailUrl.toLowerCase().endsWith('.mp4') && firstFrame && (
-              <>
-                {/* Always show thumbnail as background */}
-                <img 
-                  src={firstFrame}
-                  alt={video.title}
+            <img 
+              src={firstFrame || (thumbnailUrl && !thumbnailUrl.endsWith('.mp4') ? thumbnailUrl : '')}
+              alt={video.title}
+              className={`absolute inset-0 w-full h-full object-cover ${video.title === "Hafo" ? "scale-110" : ""}`}
+              style={{
+                zIndex: 1,
+                transform: video.title === "Hafo" ? 'scale(1.1)' : 'none',
+              }}
+            />
+            
+            <AnimatePresence>
+              {isVisible && thumbnailUrl && thumbnailUrl.toLowerCase().endsWith('.mp4') && (
+                <motion.video
+                  key="video"
+                  ref={bgVideoRef}
                   className={`absolute inset-0 w-full h-full object-cover ${video.title === "Hafo" ? "scale-110" : ""}`}
+                  autoPlay={shouldPlay}
+                  loop
+                  muted
+                  playsInline
+                  preload="auto"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.3 }}
                   style={{
-                    zIndex: 1,
+                    zIndex: 2,
                     transform: video.title === "Hafo" ? 'scale(1.1)' : 'none',
                   }}
-                />
-                
-                {/* Animate video on top */}
-                <AnimatePresence>
-                  {isVisible && (
-                    <motion.video
-                      key="video"
-                      ref={bgVideoRef}
-                      src={thumbnailUrl}
-                      className={`absolute inset-0 w-full h-full object-cover ${video.title === "Hafo" ? "scale-110" : ""}`}
-                      autoPlay
-                      loop
-                      muted
-                      playsInline
-                      preload="auto"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.3 }}
-                      style={{
-                        zIndex: 2,
-                        transform: video.title === "Hafo" ? 'scale(1.1)' : 'none',
-                        willChange: 'transform',
-                        backfaceVisibility: 'hidden',
-                        WebkitBackfaceVisibility: 'hidden',
-                        perspective: 1000,
-                        WebkitPerspective: 1000,
-                        transformStyle: 'preserve-3d',
-                        WebkitTransformStyle: 'preserve-3d'
-                      }}
-                      onLoadedData={() => {
-                        setThumbnailLoaded(true);
-                        setVideoError(false);
-                        if (bgVideoRef.current) {
-                          bgVideoRef.current.playbackRate = 1.0;
-                        }
-                      }}
-                      onError={(e) => {
-                        console.error('Video loading error:', e);
-                        setVideoError(true);
-                      }}
-                    />
-                  )}
-                </AnimatePresence>
-              </>
-            )}
-            {thumbnailUrl && !thumbnailUrl.toLowerCase().endsWith('.mp4') && (
-              <img 
-                src={thumbnailUrl} 
-                alt={video.title}
-                className={`absolute inset-0 w-full h-full object-cover ${video.title === "Hafo" ? "scale-110" : ""}`}
-                onLoad={() => setThumbnailLoaded(true)}
-                loading="lazy"
-              />
-            )}
+                  onLoadedData={() => {
+                    setThumbnailLoaded(true);
+                    setVideoError(false);
+                    if (bgVideoRef.current) {
+                      bgVideoRef.current.playbackRate = 1.0;
+                    }
+                  }}
+                  onError={(e) => {
+                    console.error('Video loading error:', e);
+                    setVideoError(true);
+                  }}
+                >
+                  <source src={thumbnailUrl} type="video/mp4" />
+                </motion.video>
+              )}
+            </AnimatePresence>
           </div>
         </div>
       </div>
