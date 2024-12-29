@@ -1,5 +1,5 @@
 // Import necessary dependencies
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState } from 'react';
 import VideoCarousel from './VideoCarousel';
 import { motion, AnimatePresence } from 'framer-motion';
 import { videos } from '../constants/constants';
@@ -9,43 +9,19 @@ import { useVideoPreload } from '../hooks/useVideoPreload';
 function HeroSection() {
   // State to track the currently selected video, defaults to "Hafo"
   const [currentVideo, setCurrentVideo] = useState("Hafo");
-  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
-
-  // Handle window resize
-  useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth <= 768);
-    };
-
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
 
   // Find the current video object to get its video ID
   const activeVideo = videos.find(video => video.title === currentVideo);
   const videoId = activeVideo?.videoIds ? activeVideo.videoIds[0] : activeVideo?.videoId;
-  
-  const videoMap = useMemo(() => ({
-    desktop: {
-      "Vezmu Si Tě Do Pekla": "/carousel/optimized/VSTDP.mp4",
-      "Hafo": "/carousel/optimized/hafo.mp4",
-      "Bunny Hop": "/carousel/optimized/bunnyhop.mp4",
-      "Upír Dex": "/carousel/optimized/upirdex.mp4",
-      "HOT": "/carousel/optimized/hot.mp4",
-      "Zabil Jsem Svou Holku": "/carousel/optimized/zabil.mp4"
-    },
-    mobile: {
-      "Vezmu Si Tě Do Pekla": "/carousel/mobile/VSTDP.mp4",
-      "Hafo": "/carousel/mobile/hafo.mp4",
-      "Bunny Hop": "/carousel/mobile/bunnyhop.mp4",
-      "Upír Dex": "/carousel/mobile/upirdex.mp4",
-      "HOT": "/carousel/mobile/hot.mp4",
-      "Zabil Jsem Svou Holku": "/carousel/mobile/zabil.mp4"
-    }
-  }), []);
-
-  const backgroundUrl = (isMobile ? videoMap.mobile[currentVideo] : videoMap.desktop[currentVideo]) || 
-    (videoId ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg` : null);
+  const videoMap = {
+    "Vezmu Si Tě Do Pekla": "/carousel/optimized/VSTDP.mp4",
+    "Hafo": "/carousel/optimized/hafo.mp4",
+    "Bunny Hop": "/carousel/optimized/bunnyhop.mp4",
+    "Upír Dex": "/carousel/optimized/upirdex.mp4",
+    "HOT": "/carousel/optimized/hot.mp4",
+    "Zabil Jsem Svou Holku": "/carousel/optimized/zabil.mp4"
+  };
+  const backgroundUrl = videoMap[currentVideo] || (videoId ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg` : null);
   const isVideo = backgroundUrl?.toLowerCase().endsWith('.mp4');
 
   useVideoPreload(videoMap);

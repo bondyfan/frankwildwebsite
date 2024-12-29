@@ -157,8 +157,6 @@ function VideoCarousel({ videos: initialVideos, onSlideChange }) {
                 onColorExtracted={handleColorExtracted}
                 isClickable={true}
                 isVisible={index === visibleIndex}
-                currentIndex={visibleIndex}
-                index={index}
               />
             </div>
           ))}
