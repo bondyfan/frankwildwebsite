@@ -138,16 +138,11 @@ const ShowcaseCard = ({ icon, title, description }) => (
 );
 
 const VideoCard = ({ title, videoUrl, description, poster }) => {
+  const [isMobile] = useState(window.innerWidth <= 768);
   const videoRef = useRef(null);
-  const [isLoaded, setIsLoaded] = useState(false);
 
-  useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.play().catch(error => {
-        console.log('Video autoplay failed:', error);
-      });
-    }
-  }, []);
+  // Convert video URL to mobile version if needed
+  const finalVideoUrl = isMobile ? videoUrl.replace('/optimized/', '/mobile/') : videoUrl;
 
   return (
     <div className="group relative w-full pb-[100%]">
@@ -155,23 +150,14 @@ const VideoCard = ({ title, videoUrl, description, poster }) => {
         <div className="relative h-full w-full">
           <video 
             ref={videoRef}
-            className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-300 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
+            className="absolute inset-0 h-full w-full object-cover"
             autoPlay
             muted
             loop
             playsInline
-            onLoadedData={() => setIsLoaded(true)}
-            onError={(e) => console.log('Video error:', e)}
-            poster={poster}
-          >
-            <source src={videoUrl} type="video/mp4" />
-            Your browser does not support the video tag.
-          </video>
-          {!isLoaded && (
-            <div className="absolute inset-0 flex items-center justify-center bg-neutral-800">
-              <div className="animate-pulse w-8 h-8 rounded-full bg-neutral-700"></div>
-            </div>
-          )}
+            preload="auto"
+            src={finalVideoUrl}
+          />
         </div>
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100">
           <div className="absolute bottom-0 p-4 text-white">
