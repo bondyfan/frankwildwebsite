@@ -11,22 +11,57 @@ function VideoComponent({ video, onColorExtracted, isClickable = true, isVisible
   const [thumbnailUrl, setThumbnailUrl] = useState('');
   const [firstFrame, setFirstFrame] = useState('');
   const [isVideoReady, setIsVideoReady] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const bgVideoRef = useRef(null);
   const preloadVideoRef = useRef(null);
   const { views: viewsData = {} } = useYoutubeData() || {};
 
+  // Video mappings for desktop and mobile
   const videoMap = useMemo(() => ({
-    "Vezmu Si Tě Do Pekla": "/carousel/optimized/VSTDP.mp4",
-    "Hafo": "/carousel/optimized/hafo.mp4",
-    "Bunny Hop": "/carousel/optimized/bunnyhop.mp4",
-    "Upír Dex": "/carousel/optimized/upirdex.mp4",
-    "HOT": "/carousel/optimized/hot.mp4",
-    "Zabil Jsem Svou Holku": "/carousel/optimized/zabil.mp4"
+    desktop: {
+      "Vezmu Si Tě Do Pekla": "/carousel/optimized/VSTDP.mp4",
+      "Hafo": "/carousel/optimized/hafo.mp4",
+      "Bunny Hop": "/carousel/optimized/bunnyhop.mp4",
+      "Upír Dex": "/carousel/optimized/upirdex.mp4",
+      "HOT": "/carousel/optimized/hot.mp4",
+      "Zabil Jsem Svou Holku": "/carousel/optimized/zabil.mp4"
+    },
+    mobile: {
+      "Vezmu Si Tě Do Pekla": "/carousel/mobile/VSTDP.mp4",
+      "Hafo": "/carousel/mobile/hafo.mp4",
+      "Bunny Hop": "/carousel/mobile/bunnyhop.mp4",
+      "Upír Dex": "/carousel/mobile/upirdex.mp4",
+      "HOT": "/carousel/mobile/hot.mp4",
+      "Zabil Jsem Svou Holku": "/carousel/mobile/zabil.mp4"
+    }
   }), []);
+
+  // Handle window resize
+  useEffect(() => {
+    const handleResize = () => {
+      const newIsMobile = window.innerWidth <= 768;
+      if (newIsMobile !== isMobile) {
+        setIsMobile(newIsMobile);
+        // Reset video state when switching between mobile and desktop
+        setIsVideoReady(false);
+        setFirstFrame('');
+        if (preloadVideoRef.current) {
+          preloadVideoRef.current.src = '';
+        }
+        if (bgVideoRef.current) {
+          bgVideoRef.current.src = '';
+        }
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [isMobile]);
 
   // Load video and extract first frame
   useEffect(() => {
-    const mp4Url = videoMap[video.title];
+    const videoUrls = isMobile ? videoMap.mobile : videoMap.desktop;
+    const mp4Url = videoUrls[video.title];
     if (!mp4Url) return;
 
     setThumbnailUrl(mp4Url);
@@ -44,7 +79,7 @@ function VideoComponent({ video, onColorExtracted, isClickable = true, isVisible
       canvas.height = preloadVideo.videoHeight;
       const ctx = canvas.getContext('2d');
       ctx.drawImage(preloadVideo, 0, 0, canvas.width, canvas.height);
-      const frameDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+      const frameDataUrl = canvas.toDataURL('image/jpeg', isMobile ? 0.6 : 0.8);
       setFirstFrame(frameDataUrl);
     };
 
@@ -65,7 +100,7 @@ function VideoComponent({ video, onColorExtracted, isClickable = true, isVisible
         preloadVideoRef.current = null;
       }
     };
-  }, [video.title, videoMap]);
+  }, [video.title, videoMap, isMobile]);
 
   // Handle video playback
   useEffect(() => {
