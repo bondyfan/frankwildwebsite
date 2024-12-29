@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import ColorThief from 'colorthief';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -7,10 +7,15 @@ import { useYoutubeData } from '../hooks/useYoutubeData';
 import { useVideoPreload } from '../hooks/useVideoPreload';
 import { API_URL } from '../config';
 
-function VideoComponent({ video, onColorExtracted, isClickable, isVisible = true }) {
+function VideoComponent({ video, onColorExtracted, isClickable = true, isVisible = true, shouldPlay = true }) {
   const [thumbnailUrl, setThumbnailUrl] = useState('');
   const [thumbnailLoaded, setThumbnailLoaded] = useState(false);
   const [videoError, setVideoError] = useState(false);
+  const [firstFrame, setFirstFrame] = useState('');
+  const [bgVideoReady, setBgVideoReady] = useState(false);
+  const mainVideoRef = useRef(null);
+  const bgVideoRef = useRef(null);
+  const canvasRef = useRef(null);
   const { views: viewsData = {}, uploadDates = {} } = useYoutubeData() || {};
   const views = video.title ? (
     video.title === "Hafo" 
@@ -50,6 +55,44 @@ function VideoComponent({ video, onColorExtracted, isClickable, isVisible = true
 
   useVideoPreload(thumbnailUrl, isVisible);
 
+  useEffect(() => {
+    if (thumbnailUrl && thumbnailUrl.toLowerCase().endsWith('.mp4')) {
+      const tempVideo = document.createElement('video');
+      tempVideo.src = thumbnailUrl;
+      tempVideo.muted = true;
+      tempVideo.preload = 'auto';
+
+      tempVideo.addEventListener('loadeddata', () => {
+        // Create canvas if it doesn't exist
+        if (!canvasRef.current) {
+          canvasRef.current = document.createElement('canvas');
+        }
+        
+        // Set canvas size to video size
+        canvasRef.current.width = tempVideo.videoWidth;
+        canvasRef.current.height = tempVideo.videoHeight;
+        
+        // Draw the first frame
+        const ctx = canvasRef.current.getContext('2d');
+        ctx.drawImage(tempVideo, 0, 0, canvasRef.current.width, canvasRef.current.height);
+        
+        // Convert to data URL
+        const frameDataUrl = canvasRef.current.toDataURL('image/jpeg', 0.9);
+        setFirstFrame(frameDataUrl);
+        
+        // Clean up
+        tempVideo.remove();
+      }, { once: true });
+
+      // Start loading the video
+      tempVideo.load();
+
+      return () => {
+        tempVideo.remove();
+      };
+    }
+  }, [thumbnailUrl]);
+
   const handleClick = () => {
     if (!isClickable) return;
     
@@ -60,16 +103,15 @@ function VideoComponent({ video, onColorExtracted, isClickable, isVisible = true
   };
 
   useEffect(() => {
-    if (thumbnailLoaded && onColorExtracted) {
+    if (thumbnailLoaded && thumbnailUrl && !thumbnailUrl.endsWith('.mp4') && onColorExtracted) {
       const img = document.createElement('img');
       img.crossOrigin = 'Anonymous';
       img.src = thumbnailUrl;
-      
       img.onload = () => {
         const colorThief = new ColorThief();
         try {
           const color = colorThief.getColor(img);
-          onColorExtracted(color);
+          onColorExtracted(`rgb(${color[0]}, ${color[1]}, ${color[2]})`);
         } catch (error) {
           console.error('Error extracting color:', error);
         }
@@ -77,70 +119,95 @@ function VideoComponent({ video, onColorExtracted, isClickable, isVisible = true
     }
   }, [thumbnailLoaded, thumbnailUrl, onColorExtracted]);
 
+  useEffect(() => {
+    if (bgVideoRef.current) {
+      if (shouldPlay) {
+        bgVideoRef.current.play().catch(console.error);
+      } else {
+        bgVideoRef.current.pause();
+        bgVideoRef.current.currentTime = 0;
+      }
+    }
+  }, [shouldPlay]);
+
+  const youtubeThumbUrl = video.videoIds 
+    ? `https://img.youtube.com/vi/${video.videoIds[0]}/maxresdefault.jpg`
+    : video.videoId 
+      ? `https://img.youtube.com/vi/${video.videoId}/maxresdefault.jpg`
+      : null;
+
   return (
     <motion.div
       className="flex flex-col items-center"
     >
       <div onClick={handleClick} className={`cursor-pointer w-[75vw] md:w-[50vw] lg:w-[32vw] ${isClickable ? 'hover:opacity-90' : ''}`}>
-        <div className="rounded-2xl overflow-hidden shadow-xl bg-white border border-gray-100 transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl">
+        <div className="rounded-2xl overflow-hidden shadow-xl transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl">
           <div className="relative w-full aspect-video bg-black overflow-hidden">
-            {/* Blurred background video */}
-            {thumbnailUrl && thumbnailUrl.toLowerCase().endsWith('.mp4') && (
-              <div className="absolute inset-0 -inset-x-32 overflow-hidden">
-                <video
-                  key={`blur-${thumbnailUrl}`}
-                  src={thumbnailUrl}
-                  className="absolute inset-0 w-full h-full object-cover scale-110"
-                  autoPlay
-                  loop
-                  muted
-                  playsInline
-                  preload="auto"
-                  style={{
-                    filter: 'blur(24px)',
-                    transform: 'scale(1.2)',
-                    opacity: 0.3,
-                  }}
-                />
-              </div>
-            )}
-            
-            {/* Main video */}
-            {thumbnailUrl && (
-              thumbnailUrl.toLowerCase().endsWith('.mp4') ? (
-                <>
-                  <video
-                    key={thumbnailUrl}
-                    src={thumbnailUrl}
-                    className={`absolute inset-0 w-full h-full object-cover ${video.title === "Hafo" ? "scale-110" : ""}`}
-                    autoPlay
-                    loop
-                    muted
-                    playsInline
-                    preload="auto"
-                    onLoadedData={() => {
-                      setThumbnailLoaded(true);
-                      setVideoError(false);
-                    }}
-                    onError={(e) => {
-                      console.error('Video loading error:', e);
-                      setVideoError(true);
-                    }}
-                  />
-                  {videoError && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
-                      <p className="text-white">Error loading video</p>
-                    </div>
-                  )}
-                </>
-              ) : (
+            {thumbnailUrl && thumbnailUrl.toLowerCase().endsWith('.mp4') && firstFrame && (
+              <>
+                {/* Always show thumbnail as background */}
                 <img 
-                  src={thumbnailUrl} 
+                  src={firstFrame}
                   alt={video.title}
                   className={`absolute inset-0 w-full h-full object-cover ${video.title === "Hafo" ? "scale-110" : ""}`}
-                  onLoad={() => setThumbnailLoaded(true)}
+                  style={{
+                    zIndex: 1,
+                    transform: video.title === "Hafo" ? 'scale(1.1)' : 'none',
+                  }}
                 />
-              )
+                
+                {/* Animate video on top */}
+                <AnimatePresence>
+                  {isVisible && (
+                    <motion.video
+                      key="video"
+                      ref={bgVideoRef}
+                      src={thumbnailUrl}
+                      className={`absolute inset-0 w-full h-full object-cover ${video.title === "Hafo" ? "scale-110" : ""}`}
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                      preload="auto"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.3 }}
+                      style={{
+                        zIndex: 2,
+                        transform: video.title === "Hafo" ? 'scale(1.1)' : 'none',
+                        willChange: 'transform',
+                        backfaceVisibility: 'hidden',
+                        WebkitBackfaceVisibility: 'hidden',
+                        perspective: 1000,
+                        WebkitPerspective: 1000,
+                        transformStyle: 'preserve-3d',
+                        WebkitTransformStyle: 'preserve-3d'
+                      }}
+                      onLoadedData={() => {
+                        setThumbnailLoaded(true);
+                        setVideoError(false);
+                        if (bgVideoRef.current) {
+                          bgVideoRef.current.playbackRate = 1.0;
+                        }
+                      }}
+                      onError={(e) => {
+                        console.error('Video loading error:', e);
+                        setVideoError(true);
+                      }}
+                    />
+                  )}
+                </AnimatePresence>
+              </>
+            )}
+            {thumbnailUrl && !thumbnailUrl.toLowerCase().endsWith('.mp4') && (
+              <img 
+                src={thumbnailUrl} 
+                alt={video.title}
+                className={`absolute inset-0 w-full h-full object-cover ${video.title === "Hafo" ? "scale-110" : ""}`}
+                onLoad={() => setThumbnailLoaded(true)}
+                loading="lazy"
+              />
             )}
           </div>
         </div>
@@ -148,16 +215,18 @@ function VideoComponent({ video, onColorExtracted, isClickable, isVisible = true
       <div className="mt-6 text-center">
         <h2 className="text-2xl font-bold mb-4">
           {video.title}
-          <span className="align-super ml-1 text-[0.6rem] text-gray-500">
-            {uploadDates[video.title]}
-          </span>
         </h2>
         <div className="relative inline-block">
           <div className="relative px-6 py-3">
-            <span className={`text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 via-pink-500 to-red-500 drop-shadow-sm ${views === undefined ? 'opacity-0' : 'opacity-100 transition-opacity duration-300'}`}>
-              {formatViews(views)}
-            </span>
-            <span className="relative z-10 ml-2 text-lg font-semibold text-gray-700">views</span>
+            <div className="flex items-center">
+              <svg className="w-7 h-7 text-red-500 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+              </svg>
+              <span className={`text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 via-pink-500 to-red-500 drop-shadow-sm ${views === undefined ? 'opacity-0' : 'opacity-100 transition-opacity duration-300'}`}>
+                {formatViews(views)}
+              </span>
+              <span className="relative z-10 ml-2 text-lg font-semibold text-gray-700">views</span>
+            </div>
             <AnimatePresence mode="wait">
               {isVisible && (
                 <motion.svg

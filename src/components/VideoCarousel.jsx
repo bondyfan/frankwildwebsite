@@ -13,30 +13,13 @@ const debounce = (func, wait) => {
   };
 };
 
-// Helper function to get thumbnail URL
-const getThumbnailUrl = (video) => {
-  const videoId = video.videoId || (video.videoIds && video.videoIds[0]);
-  return videoId ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg` : null;
-};
-
-// Preload images helper
-const preloadImage = (url) => {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = resolve;
-    img.onerror = reject;
-    img.src = url;
-  });
-};
-
 function VideoCarousel({ videos: initialVideos, onSlideChange }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [direction, setDirection] = useState(0);
   const [isClickable, setIsClickable] = useState(true);
   const [backgroundColor, setBackgroundColor] = useState('rgb(243, 244, 246)');
-  const [isMobile, setIsMobile] = useState(window.innerWidth <= 896);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
   const [visibleIndex, setVisibleIndex] = useState(0);
-  const [imagesPreloaded, setImagesPreloaded] = useState(false);
   const carouselRef = useRef(null);
   const scrollingRef = useRef(false);
   const viewsData = useYoutubeData();
@@ -51,12 +34,33 @@ function VideoCarousel({ videos: initialVideos, onSlideChange }) {
     });
   }, [initialVideos, viewsData]);
 
+  // Calculate which items should be rendered
+  const visibleItems = useMemo(() => {
+    if (isMobile) {
+      const start = Math.max(0, visibleIndex - 1);
+      const end = Math.min(sortedVideos.length, visibleIndex + 2);
+      return sortedVideos.slice(start, end);
+    }
+    return [sortedVideos[currentIndex]];
+  }, [isMobile, visibleIndex, currentIndex, sortedVideos]);
+
+  const getItemStyle = useCallback((index) => {
+    if (isMobile) {
+      return {
+        width: 'calc(75vw)',
+        marginRight: 'calc(8vw)',
+        padding: '0 calc(4vw)',
+        transform: `translateX(${(index - visibleIndex) * 100}%)`
+      };
+    }
+    return {};
+  }, [isMobile, visibleIndex]);
+
   useEffect(() => {
     const handleResize = () => {
-      setIsMobile(window.innerWidth <= 896);
+      setIsMobile(window.innerWidth < 640);
     };
 
-    // Initial check
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
@@ -104,6 +108,7 @@ function VideoCarousel({ videos: initialVideos, onSlideChange }) {
         if (!scrollingRef.current) {
           scrollingRef.current = true;
         }
+
         const container = carouselRef.current;
         const items = container.querySelectorAll('.carousel-item');
         debouncedUpdate(container, items);
@@ -112,7 +117,6 @@ function VideoCarousel({ videos: initialVideos, onSlideChange }) {
       const container = carouselRef.current;
       container.addEventListener('scroll', handleScroll, { passive: true });
       
-      // Initial check
       const items = container.querySelectorAll('.carousel-item');
       updateVisibleIndex(container, items);
 
@@ -122,32 +126,14 @@ function VideoCarousel({ videos: initialVideos, onSlideChange }) {
     }
   }, [isMobile, sortedVideos, onSlideChange, visibleIndex]);
 
-  // Preload images effect
-  useEffect(() => {
-    const preloadImages = async () => {
-      try {
-        const imageUrls = sortedVideos.map(video => getThumbnailUrl(video)).filter(Boolean);
-        await Promise.all(imageUrls.map(url => preloadImage(url)));
-        setImagesPreloaded(true);
-      } catch (error) {
-        console.error('Error preloading images:', error);
-        // Still set as preloaded even if some fail to avoid blocking the UI
-        setImagesPreloaded(true);
-      }
-    };
-
-    preloadImages();
-  }, [sortedVideos]);
-
   if (sortedVideos.length === 0) return null;
 
   if (isMobile) {
-    // =================== MOBILE CAROUSEL START ===================
     return (
-      <div className="relative w-screen -mx-6">
-        <div
+      <div className="w-full">
+        <div 
           ref={carouselRef}
-          className={`flex overflow-x-auto snap-x snap-mandatory ${styles.scrollbarHide} mb-8 -mx-4 md:mx-0`}
+          className={`flex overflow-x-auto overscroll-y-none snap-x snap-mandatory ${styles.scrollbarHide} mb-4 -mx-4 md:mx-0`}
           style={{
             scrollBehavior: 'smooth',
             WebkitOverflowScrolling: 'touch',
@@ -161,24 +147,22 @@ function VideoCarousel({ videos: initialVideos, onSlideChange }) {
               className="carousel-item flex-none snap-center transform transition-transform"
               data-index={index}
               style={{
-                width: isMobile ? 'calc(75vw)' : 'calc(50vw)',
-                marginRight: isMobile ? 'calc(8vw)' : 'calc(4vw)',
-                padding: isMobile ? '0 calc(4vw)' : '0 calc(2vw)'
+                width: 'calc(75vw)',
+                marginRight: 'calc(8vw)',
+                padding: '0 calc(4vw)'
               }}
             >
-              <div className="video-component">
-                <VideoComponent 
-                  video={video}
-                  onColorExtracted={handleColorExtracted}
-                  isClickable={true}
-                  isVisible={index === visibleIndex}
-                />
-              </div>
+              <VideoComponent 
+                video={video}
+                onColorExtracted={handleColorExtracted}
+                isClickable={true}
+                isVisible={index === visibleIndex}
+              />
             </div>
           ))}
         </div>
 
-        <div className="flex justify-center gap-2 pb-12">
+        <div className="flex justify-center gap-2 pb-4">
           {sortedVideos.map((_, index) => (
             <button
               key={index}
@@ -188,7 +172,7 @@ function VideoCarousel({ videos: initialVideos, onSlideChange }) {
                   element.scrollIntoView({ behavior: 'smooth', inline: 'center' });
                 }
               }}
-              className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full transition-all ${
+              className={`w-2.5 h-2.5 rounded-full transition-all ${
                 index === visibleIndex 
                   ? "bg-gradient-to-r from-purple-600 via-pink-500 to-red-500" 
                   : "bg-gray-900"
@@ -199,23 +183,21 @@ function VideoCarousel({ videos: initialVideos, onSlideChange }) {
         </div>
       </div>
     );
-    // =================== MOBILE CAROUSEL END ===================
   }
 
-  // =================== DESKTOP CAROUSEL START ===================
   return (
     <div className="relative w-full max-w-[95%] mx-auto">
       <div 
-        className="relative w-full py-6 md:py-2 transition-colors duration-1000"
+        className="relative w-full py-6 transition-colors duration-1000"
         style={{
           background: `linear-gradient(180deg, ${backgroundColor}33 0%, ${backgroundColor}11 100%)`,
         }}
       >
-        <div className="flex justify-center items-center h-[300px] md:h-[400px] lg:h-[450px] relative">
-          {/* Navigation Arrows */}
-          <div className="absolute inset-0 z-10 flex items-center justify-between w-full max-w-[1000px] mx-auto px-4 -mt-24">
+        <div className="flex justify-center items-center h-[400px] lg:h-[450px] relative">
+          <div className="absolute inset-0 z-10 flex items-center justify-between w-full mx-auto -mt-24">
             <button
-              className="relative -left-32 w-14 sm:w-16 h-14 sm:h-16 bg-white rounded-full shadow-xl flex items-center justify-center hover:bg-gray-50 transition-all hover:scale-110 border border-gray-100"
+              style={{ transform: 'translateX(calc(-100% - 5vw))' }}
+              className="w-14 sm:w-16 h-14 sm:h-16 bg-white rounded-full shadow-xl flex items-center justify-center hover:bg-gray-50 transition-all hover:scale-110 border border-gray-100"
               onClick={() => {
                 setDirection(-1);
                 setTimeout(() => {
@@ -229,7 +211,8 @@ function VideoCarousel({ videos: initialVideos, onSlideChange }) {
             </button>
             
             <button
-              className="relative -right-32 w-14 sm:w-16 h-14 sm:h-16 bg-white rounded-full shadow-xl flex items-center justify-center hover:bg-gray-50 transition-all hover:scale-110 border border-gray-100"
+              style={{ transform: 'translateX(calc(100% + 5vw))' }}
+              className="w-14 sm:w-16 h-14 sm:h-16 bg-white rounded-full shadow-xl flex items-center justify-center hover:bg-gray-50 transition-all hover:scale-110 border border-gray-100"
               onClick={() => {
                 setDirection(1);
                 setTimeout(() => {
@@ -243,7 +226,6 @@ function VideoCarousel({ videos: initialVideos, onSlideChange }) {
             </button>
           </div>
 
-          {/* Carousel Content */}
           <AnimatePresence initial={false} mode="popLayout">
             <motion.div
               key={currentIndex}
@@ -263,12 +245,13 @@ function VideoCarousel({ videos: initialVideos, onSlideChange }) {
               }}
               className="absolute pointer-events-none"
             >
-              <div className={`pointer-events-auto`}>
+              <div className="pointer-events-auto">
                 <VideoComponent 
                   video={sortedVideos[currentIndex]} 
                   onColorExtracted={handleColorExtracted}
                   isClickable={true}
                   isVisible={true}
+                  shouldPlay={true}
                 />
               </div>
             </motion.div>
@@ -276,7 +259,6 @@ function VideoCarousel({ videos: initialVideos, onSlideChange }) {
         </div>
       </div>
 
-      {/* Pagination Dots - Separated */}
       <div className="mt-0 flex justify-center gap-2">
         {sortedVideos.map((_, index) => (
           <button
@@ -288,7 +270,7 @@ function VideoCarousel({ videos: initialVideos, onSlideChange }) {
                 setCurrentIndex(index);
               }, 0);
             }}
-            className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full transition-all ${
+            className={`w-2.5 h-2.5 rounded-full transition-all ${
               index === currentIndex 
                 ? "bg-gradient-to-r from-purple-600 via-pink-500 to-red-500 scale-125" 
                 : "bg-gray-900"
@@ -299,7 +281,6 @@ function VideoCarousel({ videos: initialVideos, onSlideChange }) {
       </div>
     </div>
   );
-  // =================== DESKTOP CAROUSEL END ===================
 }
 
 export default VideoCarousel;

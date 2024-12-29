@@ -38,54 +38,54 @@ function HeroSection() {
       {/* Blurred background */}
       <AnimatePresence initial={false}>
         {backgroundUrl && (
-          isVideo ? (
-            <motion.div 
-              key={backgroundUrl}
-              className="absolute inset-0 -inset-x-32 overflow-hidden"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 0.3 }}
-              exit={{ opacity: 0 }}
-              transition={{ 
-                duration: 0.3,
-                ease: "easeInOut"
-              }}
-            >
+          <motion.div 
+            key={backgroundUrl}
+            className="absolute inset-0 -inset-x-32 overflow-hidden"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ 
+              duration: 0.3,
+              ease: "easeInOut"
+            }}
+          >
+            {isVideo ? (
               <video
                 src={backgroundUrl}
-                className="absolute inset-0 w-full h-full object-cover"
+                className="absolute inset-0 w-full h-full object-cover scale-105 blur-sm opacity-40"
                 autoPlay
                 loop
                 muted
                 playsInline
                 preload="auto"
                 style={{
-                  filter: 'blur(24px)',
-                  transform: 'scale(1.2)',
                   willChange: 'opacity',
                 }}
               />
-            </motion.div>
-          ) : (
-            <motion.div 
-              key={backgroundUrl}
-              className="absolute inset-0 -inset-x-32"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 0.3 }}
-              exit={{ opacity: 0 }}
-              transition={{ 
-                duration: 0.3,
-                ease: "easeInOut"
-              }}
-              style={{
-                backgroundImage: `url(${backgroundUrl})`,
-                backgroundPosition: 'center',
-                backgroundSize: 'cover',
-                filter: 'blur(24px)',
-                transform: 'scale(1.2)',
-                willChange: 'opacity',
-              }}
-            />
-          )
+            ) : (
+              <motion.div 
+                key={backgroundUrl}
+                className="absolute inset-0 -inset-x-32"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ 
+                  duration: 0.3,
+                  ease: "easeInOut"
+                }}
+                style={{
+                  backgroundImage: `url(${backgroundUrl})`,
+                  backgroundPosition: 'center',
+                  backgroundSize: 'cover',
+                  filter: 'blur(24px)',
+                  transform: 'scale(1.2)',
+                  willChange: 'opacity',
+                  opacity: 0.5
+                }}
+              />
+            )
+            }
+          </motion.div>
         )}
       </AnimatePresence>
       {/* Gradient overlay */}
@@ -97,20 +97,52 @@ function HeroSection() {
         }}
       />
       {/* Content container with relative positioning to appear above the background */}
-      <div className="relative z-10">
-        {/* Text content container with responsive padding and margins */}
-        <div className="text-center mb-8 sm:mb-0 md:mb-0 px-4 sm:px-8 md:px-12">
-          {/* Main heading with responsive font sizes and spacing */}
-          <h1 className="text-6xl sm:text-6xl md:text-8xl font-extrabold tracking-tighter pt-16 sm:pt-20 mb-4 sm:mb-8">Frank Wild</h1>
-          {/* Subheading with responsive sizing and max-width for better readability */}
-          <h2 className="text-xl sm:text-2xl md:text-3xl text-muted-foreground max-w-[80%] mx-auto pb-8 md:pb-0">Hudební videa, která trhají rekordy</h2>
+      <motion.div 
+        className="relative z-10"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.8, ease: "easeOut" }}
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div 
+            className="text-center"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.8, ease: "easeOut", delay: 0.1 }}
+          >
+            {/* Text content container with responsive padding and margins */}
+            <motion.h1 
+              className="mt-8 sm:mt-24 text-6xl tracking-tight font-extrabold text-gray-900 sm:text-6xl md:text-7xl mb-8 sm:mb-4"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
+            >
+              <span className="block">
+                Frank Wild
+              </span>
+            </motion.h1>
+            {/* Subheading with responsive sizing and max-width for better readability */}
+            <motion.h2 
+              className="text-xl sm:text-2xl md:text-2xl max-w-[80%] mx-auto pb-8 md:pb-4"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, ease: "easeOut", delay: 0.3 }}
+            >
+              Hudební videa, která trhají rekordy
+            </motion.h2>
+          </motion.div>
+          {/* Video carousel container with max-width and centering */}
+          <motion.div 
+            className="w-full max-w-lg mx-auto"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, ease: "easeOut", delay: 0.4 }}
+          >
+            {/* Render VideoCarousel component with videos data and onSlideChange callback */}
+            <VideoCarousel videos={videos} onSlideChange={setCurrentVideo} />
+          </motion.div>
         </div>
-        {/* Video carousel container with max-width and centering */}
-        <div className="w-full max-w-lg mx-auto">
-          {/* Render VideoCarousel component with videos data and onSlideChange callback */}
-          <VideoCarousel videos={videos} onSlideChange={setCurrentVideo} />
-        </div>
-      </div>
+      </motion.div>
     </motion.section>
   );
 }

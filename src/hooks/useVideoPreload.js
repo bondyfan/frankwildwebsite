@@ -1,39 +1,44 @@
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { API_URL } from '../config';
 
-export function useVideoPreload(videoSrc, shouldPreload = true) {
+export function useVideoPreload(video) {
+  const [thumbnailUrl, setThumbnailUrl] = useState('');
+
   useEffect(() => {
-    if (!shouldPreload) return;
+    const loadVideo = async () => {
+      try {
+        const response = await fetch(`${API_URL}/video/${encodeURIComponent(video.title)}`);
+        if (!response.ok) throw new Error('Failed to fetch video');
+        const data = await response.json();
+        
+        // Create a temporary video element to check if the browser can play the video
+        const tempVideo = document.createElement('video');
+        tempVideo.muted = true;
+        tempVideo.src = data.url;
+        
+        // Wait for metadata to load to ensure the video is playable
+        await new Promise((resolve, reject) => {
+          tempVideo.onloadedmetadata = resolve;
+          tempVideo.onerror = reject;
+          // Set a timeout to avoid hanging
+          setTimeout(reject, 5000);
+        });
 
-    let videos = [];
-    
-    // Handle both single video and video map cases
-    if (typeof videoSrc === 'string') {
-      videos.push(videoSrc);
-    } else if (typeof videoSrc === 'object') {
-      videos = Object.values(videoSrc);
+        setThumbnailUrl(data.url);
+      } catch (error) {
+        console.error('Error loading video:', error);
+        setThumbnailUrl('');
+      }
+    };
+
+    if (video?.title) {
+      loadVideo();
     }
 
-    const preloadElements = videos.map(src => {
-      if (!src) return null;
-
-      const preloadVideo = document.createElement('video');
-      preloadVideo.src = src;
-      preloadVideo.preload = 'auto';
-      preloadVideo.style.display = 'none';
-      preloadVideo.muted = true;
-
-      document.body.appendChild(preloadVideo);
-      preloadVideo.load();
-
-      return preloadVideo;
-    }).filter(Boolean);
-
     return () => {
-      preloadElements.forEach(video => {
-        if (video) {
-          video.remove();
-        }
-      });
+      setThumbnailUrl('');
     };
-  }, [videoSrc, shouldPreload]);
+  }, [video]);
+
+  return thumbnailUrl;
 }
