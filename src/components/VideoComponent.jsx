@@ -9,7 +9,6 @@ import { API_URL } from '../config';
 
 function VideoComponent({ video, onColorExtracted, isClickable = true, isVisible = true, shouldPlay = true }) {
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
-  const [isVideoReady, setIsVideoReady] = useState(false);
   const videoRef = useRef(null);
   const { views: viewsData = {} } = useYoutubeData() || {};
 
@@ -36,22 +35,19 @@ function VideoComponent({ video, onColorExtracted, isClickable = true, isVisible
   // Handle window resize
   useEffect(() => {
     const handleResize = () => {
-      const newIsMobile = window.innerWidth <= 768;
-      if (newIsMobile !== isMobile) {
-        setIsMobile(newIsMobile);
-      }
+      setIsMobile(window.innerWidth <= 768);
     };
 
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, [isMobile]);
 
-  // Extract color when video metadata is loaded
+  // Extract color when video is loaded
   useEffect(() => {
     if (videoRef.current && onColorExtracted) {
-      const handleLoadedMetadata = () => {
-        const video = videoRef.current;
-        const canvas = document.createElement('canvas');
+      const video = videoRef.current;
+      const canvas = document.createElement('canvas');
+      const handleLoadedData = () => {
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
         const ctx = canvas.getContext('2d');
@@ -66,25 +62,10 @@ function VideoComponent({ video, onColorExtracted, isClickable = true, isVisible
         }
       };
 
-      videoRef.current.addEventListener('loadedmetadata', handleLoadedMetadata);
-      return () => {
-        if (videoRef.current) {
-          videoRef.current.removeEventListener('loadedmetadata', handleLoadedMetadata);
-        }
-      };
+      video.addEventListener('loadeddata', handleLoadedData);
+      return () => video.removeEventListener('loadeddata', handleLoadedData);
     }
   }, [onColorExtracted]);
-
-  // Handle video playback
-  useEffect(() => {
-    if (videoRef.current && isVideoReady) {
-      if (shouldPlay && isVisible) {
-        videoRef.current.play().catch(console.error);
-      } else {
-        videoRef.current.pause();
-      }
-    }
-  }, [shouldPlay, isVisible, isVideoReady]);
 
   const handleClick = () => {
     if (!isClickable) return;
@@ -123,7 +104,6 @@ function VideoComponent({ video, onColorExtracted, isClickable = true, isVisible
               muted
               playsInline
               preload="auto"
-              onLoadedData={() => setIsVideoReady(true)}
               style={{
                 transform: video.title === "Hafo" ? 'scale(1.1)' : 'none',
               }}
