@@ -7,13 +7,10 @@ import { useYoutubeData } from '../hooks/useYoutubeData';
 import { useVideoPreload } from '../hooks/useVideoPreload';
 import { API_URL } from '../config';
 
-function VideoComponent({ video, onColorExtracted, isClickable = true, isVisible = true, shouldPlay = true, currentIndex, index }) {
-  const [thumbnailUrl, setThumbnailUrl] = useState('');
-  const [firstFrame, setFirstFrame] = useState('');
-  const [isVideoReady, setIsVideoReady] = useState(false);
+function VideoComponent({ video, onColorExtracted, isClickable = true, isVisible = true, shouldPlay = true }) {
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
-  const bgVideoRef = useRef(null);
-  const preloadVideoRef = useRef(null);
+  const [isVideoReady, setIsVideoReady] = useState(false);
+  const videoRef = useRef(null);
   const { views: viewsData = {} } = useYoutubeData() || {};
 
   // Video mappings for desktop and mobile
@@ -42,15 +39,6 @@ function VideoComponent({ video, onColorExtracted, isClickable = true, isVisible
       const newIsMobile = window.innerWidth <= 768;
       if (newIsMobile !== isMobile) {
         setIsMobile(newIsMobile);
-        // Reset video state when switching between mobile and desktop
-        setIsVideoReady(false);
-        setFirstFrame('');
-        if (preloadVideoRef.current) {
-          preloadVideoRef.current.src = '';
-        }
-        if (bgVideoRef.current) {
-          bgVideoRef.current.src = '';
-        }
       }
     };
 
@@ -58,79 +46,56 @@ function VideoComponent({ video, onColorExtracted, isClickable = true, isVisible
     return () => window.removeEventListener('resize', handleResize);
   }, [isMobile]);
 
-  // Load video and extract first frame
+  // Extract color when video metadata is loaded
   useEffect(() => {
-    const videoUrls = isMobile ? videoMap.mobile : videoMap.desktop;
-    const mp4Url = videoUrls[video.title];
-    if (!mp4Url) return;
-
-    setThumbnailUrl(mp4Url);
-
-    const preloadVideo = document.createElement('video');
-    preloadVideo.muted = true;
-    preloadVideo.playsInline = true;
-    preloadVideo.preload = 'auto';
-    preloadVideoRef.current = preloadVideo;
-    preloadVideo.src = mp4Url;
-
-    const extractFrame = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = preloadVideo.videoWidth;
-      canvas.height = preloadVideo.videoHeight;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(preloadVideo, 0, 0, canvas.width, canvas.height);
-      const frameDataUrl = canvas.toDataURL('image/jpeg', isMobile ? 0.6 : 0.8);
-      setFirstFrame(frameDataUrl);
-    };
-
-    const handleCanPlay = () => {
-      extractFrame();
-      setIsVideoReady(true);
-      preloadVideo.removeEventListener('canplay', handleCanPlay);
-    };
-
-    preloadVideo.addEventListener('canplay', handleCanPlay);
-    preloadVideo.load();
-
-    return () => {
-      if (preloadVideoRef.current) {
-        preloadVideoRef.current.removeEventListener('canplay', handleCanPlay);
-        preloadVideoRef.current.src = '';
-        preloadVideoRef.current.remove();
-        preloadVideoRef.current = null;
-      }
-    };
-  }, [video.title, videoMap, isMobile]);
-
-  // Handle video playback
-  useEffect(() => {
-    if (bgVideoRef.current && isVideoReady) {
-      if (shouldPlay && isVisible) {
-        bgVideoRef.current.play().catch(console.error);
-      } else {
-        bgVideoRef.current.pause();
-        bgVideoRef.current.currentTime = 0;
-      }
-    }
-  }, [shouldPlay, isVisible, isVideoReady]);
-
-  // Extract color from first frame
-  useEffect(() => {
-    if (firstFrame && onColorExtracted) {
-      const img = document.createElement('img');
-      img.crossOrigin = 'Anonymous';
-      img.src = firstFrame;
-      img.onload = () => {
+    if (videoRef.current && onColorExtracted) {
+      const handleLoadedMetadata = () => {
+        const video = videoRef.current;
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
         const colorThief = new ColorThief();
         try {
-          const color = colorThief.getColor(img);
+          const color = colorThief.getColor(canvas);
           onColorExtracted(`rgb(${color[0]}, ${color[1]}, ${color[2]})`);
         } catch (error) {
           console.error('Error extracting color:', error);
         }
       };
+
+      videoRef.current.addEventListener('loadedmetadata', handleLoadedMetadata);
+      return () => {
+        if (videoRef.current) {
+          videoRef.current.removeEventListener('loadedmetadata', handleLoadedMetadata);
+        }
+      };
     }
-  }, [firstFrame, onColorExtracted]);
+  }, [onColorExtracted]);
+
+  // Handle video playback
+  useEffect(() => {
+    if (videoRef.current && isVideoReady) {
+      if (shouldPlay && isVisible) {
+        videoRef.current.play().catch(console.error);
+      } else {
+        videoRef.current.pause();
+      }
+    }
+  }, [shouldPlay, isVisible, isVideoReady]);
+
+  const handleClick = () => {
+    if (!isClickable) return;
+    
+    const videoId = video.videoId || (video.videoIds && video.videoIds[0]);
+    if (videoId) {
+      window.open(`https://www.youtube.com/watch?v=${videoId}`, '_blank');
+    }
+  };
+
+  const videoUrl = isMobile ? videoMap.mobile[video.title] : videoMap.desktop[video.title];
 
   const views = video.title ? (
     video.title === "Hafo" 
@@ -144,58 +109,25 @@ function VideoComponent({ video, onColorExtracted, isClickable = true, isVisible
       ? `https://img.youtube.com/vi/${video.videoId}/maxresdefault.jpg`
       : null;
 
-  const handleClick = () => {
-    if (!isClickable) return;
-    
-    const videoId = video.videoId || (video.videoIds && video.videoIds[0]);
-    if (videoId) {
-      window.open(`https://www.youtube.com/watch?v=${videoId}`, '_blank');
-    }
-  };
-
   return (
     <motion.div className="flex flex-col items-center">
       <div onClick={handleClick} className={`cursor-pointer w-[75vw] md:w-[50vw] lg:w-[32vw] ${isClickable ? 'hover:opacity-90' : ''}`}>
         <div className="rounded-2xl overflow-hidden shadow-xl transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl">
           <div className="relative w-full aspect-video bg-black overflow-hidden">
-            {/* Always show first frame */}
-            {firstFrame && (
-              <img 
-                src={firstFrame}
-                alt={video.title}
-                className={`absolute inset-0 w-full h-full object-cover ${video.title === "Hafo" ? "scale-110" : ""}`}
-                style={{
-                  zIndex: 1,
-                  transform: video.title === "Hafo" ? 'scale(1.1)' : 'none',
-                }}
-              />
-            )}
-            
-            {/* Show video only when ready and visible */}
-            <AnimatePresence>
-              {isVisible && isVideoReady && thumbnailUrl && (
-                <motion.video
-                  key="video"
-                  ref={bgVideoRef}
-                  className={`absolute inset-0 w-full h-full object-cover ${video.title === "Hafo" ? "scale-110" : ""}`}
-                  autoPlay={shouldPlay}
-                  loop
-                  muted
-                  playsInline
-                  preload="auto"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.3 }}
-                  style={{
-                    zIndex: 2,
-                    transform: video.title === "Hafo" ? 'scale(1.1)' : 'none',
-                  }}
-                >
-                  <source src={thumbnailUrl} type="video/mp4" />
-                </motion.video>
-              )}
-            </AnimatePresence>
+            <video
+              ref={videoRef}
+              className={`absolute inset-0 w-full h-full object-cover ${video.title === "Hafo" ? "scale-110" : ""}`}
+              src={videoUrl}
+              autoPlay={shouldPlay && isVisible}
+              loop
+              muted
+              playsInline
+              preload="auto"
+              onLoadedData={() => setIsVideoReady(true)}
+              style={{
+                transform: video.title === "Hafo" ? 'scale(1.1)' : 'none',
+              }}
+            />
           </div>
         </div>
       </div>
