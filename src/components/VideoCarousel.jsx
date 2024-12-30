@@ -141,28 +141,25 @@ function VideoCarousel({ videos: initialVideos, onSlideChange }) {
             paddingRight: "calc(50vw - 20vw)",
           }}
         >
-          {sortedVideos.map((video, index) => {
-            const isAdjacent = Math.abs(index - visibleIndex) <= 1;
-            return (
-              <div 
-                key={index} 
-                className="carousel-item flex-none snap-center transform transition-transform"
-                data-index={index}
-                style={{
-                  width: 'calc(75vw)',
-                  marginRight: 'calc(8vw)',
-                  padding: '0 calc(4vw)'
-                }}
-              >
-                <VideoComponent 
-                  video={video}
-                  onColorExtracted={handleColorExtracted}
-                  isClickable={true}
-                  isVisible={isAdjacent}
-                />
-              </div>
-            );
-          })}
+          {sortedVideos.map((video, index) => (
+            <div 
+              key={index} 
+              className="carousel-item flex-none snap-center transform transition-transform"
+              data-index={index}
+              style={{
+                width: 'calc(75vw)',
+                marginRight: 'calc(8vw)',
+                padding: '0 calc(4vw)'
+              }}
+            >
+              <VideoComponent 
+                video={video}
+                onColorExtracted={handleColorExtracted}
+                isClickable={true}
+                isVisible={index === visibleIndex}
+              />
+            </div>
+          ))}
         </div>
 
         <div className="flex justify-center gap-2 pb-4">
