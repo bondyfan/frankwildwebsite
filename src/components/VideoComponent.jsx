@@ -35,11 +35,13 @@ import { useYoutubeData } from '../hooks/useYoutubeData';
 import { useVideoPreload } from '../hooks/useVideoPreload';
 import { API_URL } from '../config';
 
-function VideoComponent({ video, onColorExtracted, isClickable = true, isVisible = true, shouldPlay = true }) {
+function VideoComponent({ video, onColorExtracted, isClickable = true, isVisible = true, shouldPlay = true, shouldPreload = false }) {
   const [thumbnailUrl, setThumbnailUrl] = useState('');
   const [thumbnailLoaded, setThumbnailLoaded] = useState(false);
   const [videoError, setVideoError] = useState(false);
   const [isVideoLoaded, setIsVideoLoaded] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isVideoReady, setIsVideoReady] = useState(false);
   const videoRef = useRef(null);
   const containerRef = useRef(null);
   const { views: viewsData = {}, uploadDates = {} } = useYoutubeData() || {};
@@ -48,6 +50,14 @@ function VideoComponent({ video, onColorExtracted, isClickable = true, isVisible
       ? ((viewsData?.["Hafo"] || 0) + (viewsData?.["Hafo (alternate)"] || 0))
       : (viewsData?.[video.title] || 0)
   ) : undefined;
+
+  // Reset states when visibility changes
+  useEffect(() => {
+    if (!isVisible) {
+      setIsPlaying(false);
+      setIsVideoReady(false);
+    }
+  }, [isVisible]);
 
   useEffect(() => {
     const videoId = video.videoId || (video.videoIds && video.videoIds[0]);
@@ -71,23 +81,36 @@ function VideoComponent({ video, onColorExtracted, isClickable = true, isVisible
   // Preload videos
   useEffect(() => {
     if (videoRef.current && thumbnailUrl) {
-      videoRef.current.load();
+      if (isVisible || shouldPreload) {
+        videoRef.current.load();
+      }
     }
-  }, [thumbnailUrl]);
+  }, [thumbnailUrl, isVisible, shouldPreload]);
 
   // Handle video playback
   useEffect(() => {
     if (videoRef.current && isVideoLoaded) {
       if (isVisible) {
-        const playPromise = videoRef.current.play();
-        if (playPromise) {
-          playPromise.catch(error => {
+        const startPlayback = async () => {
+          try {
+            await videoRef.current.play();
+            setIsPlaying(true);
+            // Wait a frame to ensure video is actually playing
+            requestAnimationFrame(() => {
+              setIsVideoReady(true);
+            });
+          } catch (error) {
             console.error('Video play error:', error);
-          });
-        }
+            setIsPlaying(false);
+            setIsVideoReady(false);
+          }
+        };
+        startPlayback();
       } else {
         videoRef.current.pause();
         videoRef.current.currentTime = 0;
+        setIsPlaying(false);
+        setIsVideoReady(false);
       }
     }
   }, [isVisible, isVideoLoaded]);
@@ -136,34 +159,46 @@ function VideoComponent({ video, onColorExtracted, isClickable = true, isVisible
         <div className="rounded-2xl overflow-hidden shadow-xl transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl">
           <div className="relative w-full aspect-video bg-black overflow-hidden">
             {thumbnailUrl && thumbnailUrl.toLowerCase().endsWith('.mp4') && (
-              <video
-                ref={videoRef}
-                src={thumbnailUrl}
-                poster={videoMap[video.title]?.poster}
-                className="w-full h-full object-cover"
-                autoPlay={false}
-                loop
-                muted
-                playsInline
-                preload="auto"
-                style={{
-                  willChange: 'transform',
-                  opacity: isVideoLoaded ? 1 : 0,
-                  transition: 'opacity 0.3s ease-in-out'
-                }}
-                onLoadedData={() => {
-                  setThumbnailLoaded(true);
-                  setVideoError(false);
-                  setIsVideoLoaded(true);
-                  if (isVisible) {
-                    videoRef.current.play().catch(console.error);
-                  }
-                }}
-                onError={(e) => {
-                  console.error('Video loading error:', e);
-                  setVideoError(true);
-                }}
-              />
+              <div className="relative w-full h-full bg-black">
+                {/* Background Color */}
+                <div className="absolute inset-0 bg-black" />
+                
+                {/* Poster Image - Always visible */}
+                <img
+                  src={videoMap[video.title]?.poster}
+                  alt={video.title}
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+                
+                {/* Video Layer */}
+                <video
+                  ref={videoRef}
+                  src={thumbnailUrl}
+                  className="absolute inset-0 w-full h-full object-cover"
+                  poster={videoMap[video.title]?.poster}
+                  autoPlay={false}
+                  loop
+                  muted
+                  playsInline
+                  preload={isVisible || shouldPreload ? "auto" : "none"}
+                  style={{
+                    willChange: 'transform'
+                  }}
+                  onLoadedData={() => {
+                    setThumbnailLoaded(true);
+                    setVideoError(false);
+                    setIsVideoLoaded(true);
+                    if (isVisible) {
+                      videoRef.current.currentTime = 0;
+                      videoRef.current.play().catch(console.error);
+                    }
+                  }}
+                  onError={(e) => {
+                    console.error('Video loading error:', e);
+                    setVideoError(true);
+                  }}
+                />
+              </div>
             )}
             {thumbnailUrl && !thumbnailUrl.toLowerCase().endsWith('.mp4') && (
               <img 

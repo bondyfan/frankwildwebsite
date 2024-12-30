@@ -78,53 +78,46 @@ function VideoCarousel({ videos: initialVideos, onSlideChange }) {
 
   useEffect(() => {
     if (isMobile && carouselRef.current) {
-      const updateVisibleIndex = (container, items) => {
-        const containerWidth = container.offsetWidth;
-        const scrollLeft = container.scrollLeft;
-
-        items.forEach((item, index) => {
-          const itemLeft = item.offsetLeft - container.offsetLeft;
-          const itemCenter = itemLeft + (item.offsetWidth / 2);
-          const containerCenter = scrollLeft + (containerWidth / 2);
-          const distanceFromCenter = Math.abs(itemCenter - containerCenter);
-          
-          if (distanceFromCenter < item.offsetWidth / 2) {
-            if (visibleIndex !== index) {
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            const index = parseInt(entry.target.dataset.index);
+            if (!isNaN(index) && entry.intersectionRatio > 0.02) {
               setVisibleIndex(index);
-              requestAnimationFrame(() => {
-                onSlideChange(sortedVideos[index].title);
-              });
+              if (onSlideChange) {
+                onSlideChange(index);
+              }
             }
-          }
-        });
-      };
-
-      const debouncedUpdate = debounce((container, items) => {
-        updateVisibleIndex(container, items);
-        scrollingRef.current = false;
-      }, 16);
+          });
+        },
+        {
+          root: carouselRef.current,
+          threshold: [0.02],
+          rootMargin: '0px'
+        }
+      );
 
       const handleScroll = () => {
         if (!scrollingRef.current) {
           scrollingRef.current = true;
+          requestAnimationFrame(() => {
+            scrollingRef.current = false;
+          });
         }
-
-        const container = carouselRef.current;
-        const items = container.querySelectorAll('.carousel-item');
-        debouncedUpdate(container, items);
       };
 
       const container = carouselRef.current;
       container.addEventListener('scroll', handleScroll, { passive: true });
       
       const items = container.querySelectorAll('.carousel-item');
-      updateVisibleIndex(container, items);
+      items.forEach((item) => observer.observe(item));
 
       return () => {
         container.removeEventListener('scroll', handleScroll);
+        items.forEach((item) => observer.unobserve(item));
       };
     }
-  }, [isMobile, sortedVideos, onSlideChange, visibleIndex]);
+  }, [isMobile, onSlideChange]);
 
   if (sortedVideos.length === 0) return null;
 
@@ -141,25 +134,29 @@ function VideoCarousel({ videos: initialVideos, onSlideChange }) {
             paddingRight: "calc(50vw - 20vw)",
           }}
         >
-          {sortedVideos.map((video, index) => (
-            <div 
-              key={index} 
-              className="carousel-item flex-none snap-center transform transition-transform"
-              data-index={index}
-              style={{
-                width: 'calc(75vw)',
-                marginRight: 'calc(8vw)',
-                padding: '0 calc(4vw)'
-              }}
-            >
-              <VideoComponent 
-                video={video}
-                onColorExtracted={handleColorExtracted}
-                isClickable={true}
-                isVisible={index === visibleIndex}
-              />
-            </div>
-          ))}
+          {sortedVideos.map((video, index) => {
+            const isAdjacent = Math.abs(index - visibleIndex) <= 1;
+            return (
+              <div 
+                key={index} 
+                className="carousel-item flex-none snap-center transform transition-transform"
+                data-index={index}
+                style={{
+                  width: 'calc(75vw)',
+                  marginRight: 'calc(8vw)',
+                  padding: '0 calc(4vw)'
+                }}
+              >
+                <VideoComponent 
+                  video={video}
+                  onColorExtracted={handleColorExtracted}
+                  isClickable={true}
+                  isVisible={index === visibleIndex}
+                  shouldPreload={isAdjacent}
+                />
+              </div>
+            );
+          })}
         </div>
 
         <div className="flex justify-center gap-2 pb-4">
