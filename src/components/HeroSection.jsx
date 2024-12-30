@@ -154,12 +154,12 @@ function HeroSection() {
             </motion.h1>
             
             {/* Alternating content container */}
-            <div className="h-12 relative mb-8 w-full overflow-x-hidden">
+            <div className="h-12 relative mb-8 w-full ">
               <AnimatePresence mode="wait">
                 {!showSubscribers ? (
                   <motion.h2
                     key="subheading"
-                    className="text-xl sm:text-2xl md:text-2xl absolute w-full text-center"
+                    className="text-xl sm:text-2xl h-12 md:text-2xl absolute w-full text-center"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -20 }}

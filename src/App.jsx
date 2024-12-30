@@ -8,7 +8,7 @@ import { FaInstagram, FaYoutube } from 'react-icons/fa';
 
 function App() {
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
       <Navbar />
       <HeroSection />
       <MediaSection />
@@ -25,7 +25,7 @@ function App() {
                 <a href="mailto:spoluprace@frankwild.net" 
                    className="luxury-email-container group relative inline-block">
                   <div className="bg-black px-10 py-6 rounded-xl transform transition-transform duration-300 group-hover:scale-105 shadow-2xl">
-                    <span className="text-3xl font-bold text-white tracking-wider">
+                    <span className="text-xl md:text-3xl font-bold text-white ">
                       spoluprace@frankwild.net
                     </span>
                   </div>
