@@ -2,26 +2,32 @@
 const videoMap = {
   "Vezmu Si Tě Do Pekla": {
     video: "/carousel/optimized/VSTDP.mp4",
+    mobileVideo: "/carousel/mobile/VSTDP.mp4",
     poster: "/carousel/thumbnails/VSTDP.jpg"
   },
   "Hafo": {
     video: "/carousel/optimized/hafo.mp4",
+    mobileVideo: "/carousel/mobile/hafo.mp4",
     poster: "/carousel/thumbnails/hafo.jpg"
   },
   "Bunny Hop": {
     video: "/carousel/optimized/bunnyhop.mp4",
+    mobileVideo: "/carousel/mobile/bunnyhop.mp4",
     poster: "/carousel/thumbnails/bunnyhop.jpg"
   },
   "Upír Dex": {
     video: "/carousel/optimized/upirdex.mp4",
+    mobileVideo: "/carousel/mobile/upirdex.mp4",
     poster: "/carousel/thumbnails/upirdex.jpg"
   },
   "HOT": {
     video: "/carousel/optimized/hot.mp4",
+    mobileVideo: "/carousel/mobile/hot.mp4",
     poster: "/carousel/thumbnails/hot.jpg"
   },
   "Zabil Jsem Svou Holku": {
     video: "/carousel/optimized/zabil.mp4",
+    mobileVideo: "/carousel/mobile/zabil.mp4",
     poster: "/carousel/thumbnails/zabil.jpg"
   }
 };
@@ -42,6 +48,7 @@ function VideoComponent({ video, onColorExtracted, isClickable = true, isVisible
   const [isVideoLoaded, setIsVideoLoaded] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isVideoReady, setIsVideoReady] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const videoRef = useRef(null);
   const containerRef = useRef(null);
   const { views: viewsData = {}, uploadDates = {} } = useYoutubeData() || {};
@@ -50,6 +57,16 @@ function VideoComponent({ video, onColorExtracted, isClickable = true, isVisible
       ? ((viewsData?.["Hafo"] || 0) + (viewsData?.["Hafo (alternate)"] || 0))
       : (viewsData?.[video.title] || 0)
   ) : undefined;
+
+  // Handle window resize
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Reset states when visibility changes
   useEffect(() => {
@@ -62,11 +79,11 @@ function VideoComponent({ video, onColorExtracted, isClickable = true, isVisible
   useEffect(() => {
     const videoId = video.videoId || (video.videoIds && video.videoIds[0]);
     if (videoId) {
-      // Use MP4 if available, otherwise fallback to YouTube thumbnail
       const videoData = videoMap[video.title];
       if (videoData) {
         setVideoError(false);
-        setThumbnailUrl(videoData.video);
+        // Use mobile version on mobile devices
+        setThumbnailUrl(isMobile ? videoData.mobileVideo : videoData.video);
         setThumbnailLoaded(true);
       } else {
         const url = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
@@ -76,7 +93,7 @@ function VideoComponent({ video, onColorExtracted, isClickable = true, isVisible
         img.src = url;
       }
     }
-  }, [video]);
+  }, [video, isMobile]);
 
   // Preload videos
   useEffect(() => {
