@@ -18,15 +18,18 @@ async function fetchYouTubeData() {
     // Return fallback data with 0 views
     const fallbackData = {
       views: Object.keys(VIDEO_IDS).reduce((acc, key) => ({ ...acc, [key]: 0 }), {}),
-      uploadDates: VIDEO_YEARS
+      uploadDates: VIDEO_YEARS,
+      subscriberCount: 0
     };
     globalCache = fallbackData;
     notifySubscribers(fallbackData);
     return fallbackData;
   }
 
-  const url = 'https://www.googleapis.com/youtube/v3/videos';
+  const videoUrl = 'https://www.googleapis.com/youtube/v3/videos';
+  const channelUrl = 'https://www.googleapis.com/youtube/v3/channels';
   const videoIds = Object.values(VIDEO_IDS).join(',');
+  const channelId = 'UCKhUFfotWYK1_PCRZ_0e3fQ';
   
   console.log('🎥 Fetching YouTube data...', {
     timestamp: new Date().toISOString(),
@@ -34,103 +37,95 @@ async function fetchYouTubeData() {
   });
 
   try {
-    const response = await axios.get(url, {
-      params: {
-        part: 'statistics,snippet',
-        id: videoIds,
-        key: YOUTUBE_API_KEY
-      }
-    });
+    const [videoResponse, channelResponse] = await Promise.all([
+      axios.get(videoUrl, {
+        params: {
+          part: 'statistics,snippet',
+          id: videoIds,
+          key: YOUTUBE_API_KEY
+        }
+      }),
+      axios.get(channelUrl, {
+        params: {
+          part: 'statistics',
+          id: channelId,
+          key: YOUTUBE_API_KEY
+        }
+      })
+    ]);
 
     console.log('✅ YouTube API response received', {
       timestamp: new Date().toISOString(),
-      status: response.status,
-      itemsCount: response?.data?.items?.length || 0
+      status: videoResponse.status,
+      itemsCount: videoResponse?.data?.items?.length || 0
     });
 
-    if (!response.data || !response.data.items) {
+    if (!videoResponse.data || !videoResponse.data.items) {
       throw new Error('Invalid response from YouTube API');
     }
 
-    // Process the response
-    const processedData = {
-      views: {},
-      uploadDates: {}
-    };
+    const views = {};
+    const uploadDates = {};
 
-    response.data.items.forEach(item => {
-      const title = Object.keys(VIDEO_IDS).find(key => VIDEO_IDS[key] === item.id);
-      if (title) {
-        processedData.views[title] = parseInt(item.statistics.viewCount, 10);
-        processedData.uploadDates[title] = VIDEO_YEARS[title];
+    videoResponse.data.items.forEach(item => {
+      const viewCount = parseInt(item.statistics.viewCount, 10);
+      const uploadDate = new Date(item.snippet.publishedAt).getFullYear();
+      
+      // Find the video key by its ID
+      const videoKey = Object.entries(VIDEO_IDS).find(([_, id]) => id === item.id)?.[0];
+      if (videoKey) {
+        views[videoKey] = viewCount;
+        uploadDates[videoKey] = uploadDate;
       }
     });
 
-    globalCache = processedData;
-    notifySubscribers(processedData);
-    return processedData;
+    const subscriberCount = parseInt(channelResponse.data?.items?.[0]?.statistics?.subscriberCount || '0', 10);
+
+    const data = {
+      views,
+      uploadDates,
+      subscriberCount
+    };
+
+    globalCache = data;
+    notifySubscribers(data);
+    return data;
   } catch (error) {
     console.error('Error fetching YouTube data:', error);
-    // Return fallback data with 0 views on error
-    const fallbackData = {
-      views: Object.keys(VIDEO_IDS).reduce((acc, key) => ({ ...acc, [key]: 0 }), {}),
-      uploadDates: VIDEO_YEARS
-    };
-    globalCache = fallbackData;
-    notifySubscribers(fallbackData);
-    return fallbackData;
+    throw error;
   }
 }
 
-export function useYoutubeData() {
-  const [data, setData] = useState(globalCache || { views: {}, uploadDates: {} });
-  const [loading, setLoading] = useState(!globalCache);
-  const [error, setError] = useState(null);
+function useYoutubeData() {
+  const [data, setData] = useState(globalCache);
 
   useEffect(() => {
-    // If we already have cached data, use it
+    // If we already have cached data, use it immediately
     if (globalCache) {
       setData(globalCache);
-      setLoading(false);
       return;
     }
 
     // Subscribe to updates
-    const handleUpdate = (newData) => {
-      setData(newData);
-      setLoading(false);
-      setError(null);
-    };
-    subscribers.add(handleUpdate);
+    subscribers.add(setData);
 
     // If no one is currently fetching, start a fetch
     if (!isFetching) {
       isFetching = true;
       fetchYouTubeData()
-        .then(newData => {
-          globalCache = newData;
-          notifySubscribers(newData);
-        })
-        .catch(err => {
-          console.error('Error fetching YouTube stats:', err);
-          setError(err.message);
-        })
+        .catch(console.error)
         .finally(() => {
           isFetching = false;
-          setLoading(false);
         });
     }
 
     // Cleanup subscription
     return () => {
-      subscribers.delete(handleUpdate);
+      subscribers.delete(setData);
     };
   }, []);
 
-  return { 
-    views: data.views, 
-    uploadDates: data.uploadDates,
-    loading, 
-    error 
-  };
+  return data || { views: {}, uploadDates: {}, subscriberCount: 0 };
 }
+
+export { useYoutubeData };
