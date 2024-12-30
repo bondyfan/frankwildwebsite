@@ -108,29 +108,33 @@ function VideoComponent({ video, onColorExtracted, isClickable = true, isVisible
   useEffect(() => {
     if (videoRef.current && isVideoLoaded) {
       if (isVisible) {
-        const startPlayback = async () => {
+        // On mobile, we want to start playing as soon as the video is loaded
+        // On desktop, we'll wait for the video to be centered
+        const playVideo = async () => {
           try {
+            videoRef.current.currentTime = 0;
             await videoRef.current.play();
             setIsPlaying(true);
-            // Wait a frame to ensure video is actually playing
-            requestAnimationFrame(() => {
-              setIsVideoReady(true);
-            });
           } catch (error) {
             console.error('Video play error:', error);
             setIsPlaying(false);
-            setIsVideoReady(false);
           }
         };
-        startPlayback();
+        
+        if (isMobile) {
+          // For mobile, start playing immediately when loaded
+          playVideo();
+        } else {
+          // For desktop, only play when it's the center video
+          playVideo();
+        }
       } else {
         videoRef.current.pause();
         videoRef.current.currentTime = 0;
         setIsPlaying(false);
-        setIsVideoReady(false);
       }
     }
-  }, [isVisible, isVideoLoaded]);
+  }, [isVisible, isVideoLoaded, isMobile]);
 
   useEffect(() => {
     if (thumbnailLoaded && thumbnailUrl && !thumbnailUrl.endsWith('.mp4') && onColorExtracted) {

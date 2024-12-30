@@ -136,6 +136,7 @@ function VideoCarousel({ videos: initialVideos, onSlideChange }) {
         >
           {sortedVideos.map((video, index) => {
             const isAdjacent = Math.abs(index - visibleIndex) <= 1;
+            const shouldPlay = isMobile ? isAdjacent : index === visibleIndex;
             return (
               <div 
                 key={index} 
@@ -151,7 +152,7 @@ function VideoCarousel({ videos: initialVideos, onSlideChange }) {
                   video={video}
                   onColorExtracted={handleColorExtracted}
                   isClickable={true}
-                  isVisible={index === visibleIndex}
+                  isVisible={shouldPlay}
                   shouldPreload={isAdjacent}
                 />
               </div>
