@@ -41,7 +41,7 @@ import { useYoutubeData } from '../hooks/useYoutubeData';
 import { useVideoPreload } from '../hooks/useVideoPreload';
 import { API_URL } from '../config';
 
-function VideoComponent({ video, onColorExtracted, isClickable = true, isVisible = true, shouldPlay = true, shouldPreload = false, onVideoRef }) {
+function VideoComponent({ video, onColorExtracted, isClickable = true, isVisible = true, shouldPlay = true, shouldPreload = false, onVideoRef, isSelected = false }) {
   const [thumbnailUrl, setThumbnailUrl] = useState('');
   const [thumbnailLoaded, setThumbnailLoaded] = useState(false);
   const [videoError, setVideoError] = useState(false);
@@ -257,7 +257,7 @@ function VideoComponent({ video, onColorExtracted, isClickable = true, isVisible
               <span className="relative z-10 ml-2 text-lg font-semibold text-gray-700">views</span>
             </div>
             <AnimatePresence mode="wait">
-              {isVisible && (
+              {(!isMobile || (isVisible && isSelected)) && (
                 <motion.svg
                   key={`border-${video.title}`}
                   className="absolute inset-0 w-full h-full"

@@ -238,6 +238,7 @@ function VideoCarousel({ videos = [], onSlideChange, mobileBackgroundRef }) {
                   isVisible={shouldPlay}
                   shouldPreload={isAdjacent}
                   onVideoRef={(videoElement) => handleVideoVisibilityChange(index, videoElement)}
+                  isSelected={!isMobile || index === visibleIndex}
                 />
               </div>
             );
