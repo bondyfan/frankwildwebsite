@@ -4,8 +4,9 @@ import { FaTicketAlt } from 'react-icons/fa';
 function TourSection() {
   return (
     <section id="tour" className="py-24 bg-white">
-      <div className="container">
-        <h2 className="text-4xl font-bold mb-12 text-center">Nadcházející koncerty</h2>
+      
+      <div className=" ">
+        <h2 className="text-4xl font-bold container mb-12 text-center">Nadcházející koncerty</h2>
         <h3 className="text-6xl font-bold mb-8 text-center">2025</h3>
         <div className="marquee-container mb-4">
           <div className="marquee-content">
@@ -91,6 +92,7 @@ function TourSection() {
           }
         `}
       </style>
+ 
     </section>
   );
 }

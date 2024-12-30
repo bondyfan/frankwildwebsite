@@ -121,7 +121,8 @@ function VideoComponent({ video, onColorExtracted, isClickable = true, isVisible
 
   useEffect(() => {
     if (bgVideoRef.current) {
-      if (shouldPlay) {
+      const isMobile = window.innerWidth < 640;
+      if (isMobile || shouldPlay) {
         bgVideoRef.current.play().catch(console.error);
       } else {
         bgVideoRef.current.pause();

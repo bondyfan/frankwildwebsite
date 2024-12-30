@@ -332,6 +332,7 @@ const ShowcaseSection = () => {
           ))}
         </motion.div>
       </div>
+      
     </section>
   );
 };

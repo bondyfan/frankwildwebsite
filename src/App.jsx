@@ -57,8 +57,10 @@ function App() {
                 </a>
               </div>
             </div>
+            
           </div>
         </div>
+
       </section>
       <style jsx>{`
         .instagram-gradient {
