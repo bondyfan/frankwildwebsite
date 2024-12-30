@@ -13,26 +13,119 @@ const debounce = (func, wait) => {
   };
 };
 
-function VideoCarousel({ videos: initialVideos, onSlideChange }) {
+function VideoCarousel({ videos = [], onSlideChange, mobileBackgroundRef }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [direction, setDirection] = useState(0);
   const [isClickable, setIsClickable] = useState(true);
   const [backgroundColor, setBackgroundColor] = useState('rgb(243, 244, 246)');
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
   const [visibleIndex, setVisibleIndex] = useState(0);
+  const [isMobile] = useState(window.innerWidth <= 768);
   const carouselRef = useRef(null);
   const scrollingRef = useRef(false);
-  const viewsData = useYoutubeData();
+  const currentVideoRef = useRef(null);
+  const lastSyncTimeRef = useRef(0);
+  const animationFrameRef = useRef(null);
+  const { views: viewsData = {}, uploadDates = {} } = useYoutubeData() || {};
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Function to sync background video with carousel video
+  const syncBackgroundVideo = useCallback(() => {
+    if (isMobile && mobileBackgroundRef?.current && currentVideoRef.current) {
+      const now = performance.now();
+      const existingVideo = mobileBackgroundRef.current.querySelector('video');
+      
+      if (existingVideo && !existingVideo.paused && (now - lastSyncTimeRef.current > 50)) {
+        const targetTime = currentVideoRef.current.currentTime + 0.05; // 50ms ahead
+        const timeDiff = targetTime - existingVideo.currentTime;
+        
+        // If difference is too large, sync directly
+        if (Math.abs(timeDiff) > 0.1) {
+          existingVideo.currentTime = targetTime;
+        } else {
+          // Otherwise adjust playback rate for smooth sync
+          const newRate = 1 + Math.sign(timeDiff) * Math.min(Math.abs(timeDiff) * 2, 0.1);
+          existingVideo.playbackRate = newRate;
+        }
+        
+        lastSyncTimeRef.current = now;
+      }
+
+      animationFrameRef.current = requestAnimationFrame(syncBackgroundVideo);
+    }
+  }, [isMobile, mobileBackgroundRef]);
+
+  // Set up sync with requestAnimationFrame
+  useEffect(() => {
+    if (isMobile && mobileBackgroundRef?.current) {
+      animationFrameRef.current = requestAnimationFrame(syncBackgroundVideo);
+      return () => {
+        if (animationFrameRef.current) {
+          cancelAnimationFrame(animationFrameRef.current);
+        }
+      };
+    }
+  }, [isMobile, mobileBackgroundRef, syncBackgroundVideo]);
+
+  // Function to clone video for background
+  const cloneVideoForBackground = (videoElement) => {
+    if (isMobile && mobileBackgroundRef?.current && videoElement) {
+      currentVideoRef.current = videoElement;
+      let existingVideo = mobileBackgroundRef.current.querySelector('video');
+      
+      if (!existingVideo) {
+        existingVideo = document.createElement('video');
+        existingVideo.muted = true;
+        existingVideo.loop = true;
+        existingVideo.playsInline = true;
+        existingVideo.autoplay = true;
+        existingVideo.className = "w-full h-full object-cover transition-opacity duration-300";
+        existingVideo.style.willChange = 'transform, opacity';
+        mobileBackgroundRef.current.appendChild(existingVideo);
+      }
+
+      if (existingVideo.src !== videoElement.src) {
+        // Fade out
+        existingVideo.style.opacity = '0';
+        
+        // Wait for fade out, then change source
+        setTimeout(() => {
+          existingVideo.src = videoElement.src;
+          existingVideo.currentTime = videoElement.currentTime;
+          existingVideo.playbackRate = 1;
+          existingVideo.play().then(() => {
+            // Fade back in
+            existingVideo.style.opacity = '1';
+          }).catch(console.error);
+        }, 300);
+      }
+    }
+  };
+
+  // Handle video visibility change
+  const handleVideoVisibilityChange = (index, videoElement) => {
+    if (index === visibleIndex) {
+      cloneVideoForBackground(videoElement);
+    }
+  };
 
   const sortedVideos = useMemo(() => {
-    return initialVideos.sort((a, b) => {
+    if (!Array.isArray(videos)) return [];
+    return [...videos].sort((a, b) => {
       if (a.title === "Hafo") return -1;
       if (b.title === "Hafo") return 1;
       if (a.title === "Vezmu Si Tě Do Pekla") return -1;
       if (b.title === "Vezmu Si Tě Do Pekla") return 1;
       return (viewsData[b.title] || 0) - (viewsData[a.title] || 0);
     });
-  }, [initialVideos, viewsData]);
+  }, [videos, viewsData]);
 
   // Calculate which items should be rendered
   const visibleItems = useMemo(() => {
@@ -55,16 +148,6 @@ function VideoCarousel({ videos: initialVideos, onSlideChange }) {
     }
     return {};
   }, [isMobile, visibleIndex]);
-
-  useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 640);
-    };
-
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
 
   useEffect(() => {
     if (sortedVideos[currentIndex]) {
@@ -154,6 +237,7 @@ function VideoCarousel({ videos: initialVideos, onSlideChange }) {
                   isClickable={true}
                   isVisible={shouldPlay}
                   shouldPreload={isAdjacent}
+                  onVideoRef={(videoElement) => handleVideoVisibilityChange(index, videoElement)}
                 />
               </div>
             );

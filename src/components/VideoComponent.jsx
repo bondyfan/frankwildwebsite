@@ -41,7 +41,7 @@ import { useYoutubeData } from '../hooks/useYoutubeData';
 import { useVideoPreload } from '../hooks/useVideoPreload';
 import { API_URL } from '../config';
 
-function VideoComponent({ video, onColorExtracted, isClickable = true, isVisible = true, shouldPlay = true, shouldPreload = false }) {
+function VideoComponent({ video, onColorExtracted, isClickable = true, isVisible = true, shouldPlay = true, shouldPreload = false, onVideoRef }) {
   const [thumbnailUrl, setThumbnailUrl] = useState('');
   const [thumbnailLoaded, setThumbnailLoaded] = useState(false);
   const [videoError, setVideoError] = useState(false);
@@ -103,6 +103,13 @@ function VideoComponent({ video, onColorExtracted, isClickable = true, isVisible
       }
     }
   }, [thumbnailUrl, isVisible, shouldPreload]);
+
+  // Pass video element to parent when it's ready
+  useEffect(() => {
+    if (videoRef.current && isVisible) {
+      onVideoRef?.(videoRef.current);
+    }
+  }, [isVisible, onVideoRef]);
 
   // Handle video playback
   useEffect(() => {
@@ -212,6 +219,7 @@ function VideoComponent({ video, onColorExtracted, isClickable = true, isVisible
                     if (isVisible) {
                       videoRef.current.currentTime = 0;
                       videoRef.current.play().catch(console.error);
+                      onVideoRef?.(videoRef.current);
                     }
                   }}
                   onError={(e) => {

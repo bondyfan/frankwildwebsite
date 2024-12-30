@@ -1,5 +1,5 @@
 // Import necessary dependencies
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import VideoCarousel from './VideoCarousel';
 import { motion, AnimatePresence } from 'framer-motion';
 import { videos } from '../constants/constants';
@@ -9,34 +9,28 @@ import { FaYoutube } from 'react-icons/fa';
 
 // HeroSection component: displays a hero section with a video carousel
 function HeroSection() {
-  // State to track the currently selected video, defaults to "Hafo"
   const [currentVideo, setCurrentVideo] = useState("Hafo");
   const [showSubscribers, setShowSubscribers] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const youtubeData = useYoutubeData();
+  const mobileBackgroundRef = useRef(null);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     const timer = setInterval(() => {
       setShowSubscribers(prev => !prev);
-    }, 4000); // Switch every 4 seconds
+    }, 4000);
 
     return () => clearInterval(timer);
   }, []);
-
-  // Find the current video object to get its video ID
-  const activeVideo = videos.find(video => video.title === currentVideo);
-  const videoId = activeVideo?.videoIds ? activeVideo.videoIds[0] : activeVideo?.videoId;
-  const videoMap = {
-    "Vezmu Si Tě Do Pekla": "/carousel/optimized/VSTDP.mp4",
-    "Hafo": "/carousel/optimized/hafo.mp4",
-    "Bunny Hop": "/carousel/optimized/bunnyhop.mp4",
-    "Upír Dex": "/carousel/optimized/upirdex.mp4",
-    "HOT": "/carousel/optimized/hot.mp4",
-    "Zabil Jsem Svou Holku": "/carousel/optimized/zabil.mp4"
-  };
-  const backgroundUrl = videoMap[currentVideo] || (videoId ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg` : null);
-  const isVideo = backgroundUrl?.toLowerCase().endsWith('.mp4');
-
-  useVideoPreload(videoMap);
 
   const formatSubscriberCount = (count) => {
     if (count >= 1000000) {
@@ -47,8 +41,26 @@ function HeroSection() {
     return count.toString();
   };
 
+  // Desktop video map
+  const videoMap = {
+    "Vezmu Si Tě Do Pekla": "/carousel/optimized/VSTDP.mp4",
+    "Hafo": "/carousel/optimized/hafo.mp4",
+    "Bunny Hop": "/carousel/optimized/bunnyhop.mp4",
+    "Upír Dex": "/carousel/optimized/upirdex.mp4",
+    "HOT": "/carousel/optimized/hot.mp4",
+    "Zabil Jsem Svou Holku": "/carousel/optimized/zabil.mp4"
+  };
+
+  const backgroundUrl = !isMobile ? videoMap[currentVideo] : null;
+  const isVideo = backgroundUrl?.toLowerCase().endsWith('.mp4');
+
+  useVideoPreload(Object.values(videoMap));
+
+  const handleVideoChange = (video) => {
+    setCurrentVideo(video);
+  };
+
   return (
-    // Main section container with animation
     <motion.section 
       id="home" 
       className="md:min-h-screen pt-24 pb-12 flex flex-col items-center justify-center bg-neutral-50 px-4 sm:px-8 md:px-12 pt-safe md:pt-16 pb-1 md:pb-12 relative overflow-x-hidden"
@@ -56,69 +68,71 @@ function HeroSection() {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
     >
-      {/* YouTube Subscriber Count */}
-      {/* <a
-        href="https://www.youtube.com/@frankwildofficial"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="absolute top-28 right-8 z-50 bg-black text-white px-4 py-2 rounded-xl flex items-center gap-2 hover:bg-gray-900 transition-colors duration-200"
-      >
-        <FaYoutube className="text-red-600 text-2xl" />
-        <span className="font-bold">{formatSubscriberCount(youtubeData.subscriberCount)}</span>
-      </a> */}
+      {/* Desktop background */}
+      {!isMobile && (
+        <AnimatePresence initial={false}>
+          {backgroundUrl && (
+            <motion.div 
+              key={backgroundUrl}
+              className="absolute inset-0 overflow-hidden"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ 
+                duration: 0.3,
+                ease: "easeInOut"
+              }}
+            >
+              {isVideo ? (
+                <video
+                  src={backgroundUrl}
+                  className="absolute inset-0 w-full h-full object-cover scale-105 blur-sm opacity-40"
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  preload="auto"
+                  style={{
+                    willChange: 'opacity',
+                  }}
+                />
+              ) : (
+                <motion.div 
+                  key={backgroundUrl}
+                  className="absolute inset-0"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <img 
+                    src={backgroundUrl}
+                    alt="Background"
+                    className="absolute inset-0 w-full h-full object-cover scale-105 blur-sm opacity-40"
+                  />
+                </motion.div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      )}
 
-      {/* Blurred background */}
-      <AnimatePresence initial={false}>
-        {backgroundUrl && (
-          <motion.div 
-            key={backgroundUrl}
-            className="absolute inset-0 overflow-hidden"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ 
-              duration: 0.3,
-              ease: "easeInOut"
+      {/* Mobile background video wrapper */}
+      {isMobile && (
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div 
+            ref={mobileBackgroundRef}
+            className="absolute inset-0 w-full h-full"
+            style={{
+              willChange: 'transform',
+              transform: 'scale(1.05)',
+              filter: 'blur(8px)',
+              opacity: 0.4
             }}
-          >
-            {isVideo ? (
-              <video
-                src={backgroundUrl}
-                className="absolute inset-0 w-full h-full object-cover scale-105 blur-sm opacity-40"
-                autoPlay
-                loop
-                muted
-                playsInline
-                preload="auto"
-                style={{
-                  willChange: 'opacity',
-                }}
-              />
-            ) : (
-              <motion.div 
-                key={backgroundUrl}
-                className="absolute inset-0"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ 
-                  duration: 0.3,
-                  ease: "easeInOut"
-                }}
-                style={{
-                  backgroundImage: `url(${backgroundUrl})`,
-                  backgroundPosition: 'center',
-                  backgroundSize: 'cover',
-                  filter: 'blur(24px)',
-                  transform: 'scale(1.2)',
-                  willChange: 'opacity',
-                  opacity: 0.5
-                }}
-              />
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
+          />
+        </div>
+      )}
+
       {/* Gradient overlay */}
       <div 
         className="absolute inset-0 pointer-events-none"
@@ -127,7 +141,8 @@ function HeroSection() {
           zIndex: 1
         }}
       />
-      {/* Content container with relative positioning to appear above the background */}
+
+      {/* Content container */}
       <motion.div 
         className="relative z-10"
         initial={{ opacity: 0 }}
@@ -141,7 +156,7 @@ function HeroSection() {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.8, ease: "easeOut", delay: 0.1 }}
           >
-            {/* Text content container with responsive padding and margins */}
+            {/* Title */}
             <motion.h1 
               className="mt-8 sm:mt-24 text-6xl tracking-tight font-extrabold text-gray-900 sm:text-6xl md:text-7xl mb-8 sm:mb-4"
               initial={{ opacity: 0, y: 20 }}
@@ -153,8 +168,8 @@ function HeroSection() {
               </span>
             </motion.h1>
             
-            {/* Alternating content container */}
-            <div className="h-12 relative mb-8 w-full ">
+            {/* Alternating subtitle */}
+            <div className="h-12 relative mb-8 w-full">
               <AnimatePresence mode="wait">
                 {!showSubscribers ? (
                   <motion.h2
@@ -182,15 +197,19 @@ function HeroSection() {
                 )}
               </AnimatePresence>
             </div>
-            {/* Video carousel container with max-width and centering */}
+
+            {/* Video carousel */}
             <motion.div 
               className="w-full max-w-lg mx-auto"
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, ease: "easeOut", delay: 0.4 }}
             >
-              {/* Render VideoCarousel component with videos data and onSlideChange callback */}
-              <VideoCarousel videos={videos} onSlideChange={setCurrentVideo} />
+              <VideoCarousel 
+                videos={videos}
+                onSlideChange={handleVideoChange}
+                mobileBackgroundRef={isMobile ? mobileBackgroundRef : null}
+              />
             </motion.div>
           </motion.div>
         </div>
@@ -199,5 +218,4 @@ function HeroSection() {
   );
 }
 
-// Export HeroSection component as default
 export default HeroSection;
