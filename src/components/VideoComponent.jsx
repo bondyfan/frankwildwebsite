@@ -47,9 +47,10 @@ function VideoComponent({ video, onColorExtracted, isClickable = true, isVisible
   const [videoError, setVideoError] = useState(false);
   const [isVideoLoaded, setIsVideoLoaded] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isVideoReady, setIsVideoReady] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const videoRef = useRef(null);
   const containerRef = useRef(null);
-  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const { views: viewsData = {}, uploadDates = {} } = useYoutubeData() || {};
   const views = video.title ? (
     video.title === "Hafo" 
@@ -94,27 +95,39 @@ function VideoComponent({ video, onColorExtracted, isClickable = true, isVisible
     }
   }, [video, isMobile]);
 
-  // Start loading video as soon as URL is set
+  // Preload videos
   useEffect(() => {
-    if (thumbnailUrl && videoRef.current) {
-      videoRef.current.load();
+    if (videoRef.current && thumbnailUrl) {
+      if (isVisible || shouldPreload) {
+        videoRef.current.load();
+      }
     }
-  }, [thumbnailUrl]);
+  }, [thumbnailUrl, isVisible, shouldPreload]);
 
   // Handle video playback
   useEffect(() => {
     if (videoRef.current && isVideoLoaded) {
       if (isVisible) {
-        videoRef.current.currentTime = 0;
-        const playPromise = videoRef.current.play();
-        if (playPromise) {
-          playPromise.catch(error => {
+        const startPlayback = async () => {
+          try {
+            await videoRef.current.play();
+            setIsPlaying(true);
+            // Wait a frame to ensure video is actually playing
+            requestAnimationFrame(() => {
+              setIsVideoReady(true);
+            });
+          } catch (error) {
             console.error('Video play error:', error);
-          });
-        }
+            setIsPlaying(false);
+            setIsVideoReady(false);
+          }
+        };
+        startPlayback();
       } else {
         videoRef.current.pause();
         videoRef.current.currentTime = 0;
+        setIsPlaying(false);
+        setIsVideoReady(false);
       }
     }
   }, [isVisible, isVideoLoaded]);
@@ -184,24 +197,17 @@ function VideoComponent({ video, onColorExtracted, isClickable = true, isVisible
                   loop
                   muted
                   playsInline
-                  preload="auto"
-                  onLoadStart={() => {
-                    if (videoRef.current) {
-                      videoRef.current.currentTime = 0;
-                    }
-                  }}
-                  onCanPlayThrough={() => {
-                    setIsVideoLoaded(true);
-                    if (isVisible && videoRef.current) {
-                      videoRef.current.currentTime = 0;
-                      videoRef.current.play().catch(console.error);
-                    }
+                  preload={isVisible || shouldPreload ? "auto" : "none"}
+                  style={{
+                    willChange: 'transform'
                   }}
                   onLoadedData={() => {
                     setThumbnailLoaded(true);
                     setVideoError(false);
-                    if (videoRef.current) {
+                    setIsVideoLoaded(true);
+                    if (isVisible) {
                       videoRef.current.currentTime = 0;
+                      videoRef.current.play().catch(console.error);
                     }
                   }}
                   onError={(e) => {

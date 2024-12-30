@@ -135,7 +135,7 @@ function VideoCarousel({ videos: initialVideos, onSlideChange }) {
           }}
         >
           {sortedVideos.map((video, index) => {
-            const isAdjacent = Math.abs(index - visibleIndex) <= 2;  
+            const isAdjacent = Math.abs(index - visibleIndex) <= 1;
             return (
               <div 
                 key={index} 
